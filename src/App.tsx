@@ -1,3 +1,4 @@
+// App.tsx
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -6,16 +7,21 @@ import {
   Navigate,
 } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute/ProtectedRoute";
+import NavBar from "./components/NavBar/NavBar"; // Import de la navbar
 import "./App.css";
 import Home from "./pages/Home/Home";
-import Portfolio from "./pages/Portfolio/Portfolio";
+import ProfilesPage from "./pages/ProfilesPage/ProfilesPage";
+import ChatPage from "./pages/ChatPage/ChatPage";
 
 const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
+        {/* Ajout de la NavBar - elle sera visible sur toutes les pages */}
+        <NavBar />
+
         <Routes>
-          {/* Routes protégées */}
+          {/* Route par défaut */}
           <Route
             path="/"
             element={
@@ -25,17 +31,26 @@ const App: React.FC = () => {
             }
           />
 
+          {/* Route portfolio */}
           <Route
-            path="/portfolio"
+            path="/profiles"
             element={
               <ProtectedRoute>
-                <Portfolio />
+                <ProfilesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
               </ProtectedRoute>
             }
           />
 
-          {/* Redirection par défaut */}
-          <Route path="/" element={<Navigate to="/" replace />} />
+          {/* Redirection pour toutes les autres routes */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>

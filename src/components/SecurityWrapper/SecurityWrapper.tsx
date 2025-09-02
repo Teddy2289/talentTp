@@ -1,32 +1,36 @@
+// components/SecurityWrapper/SecurityWrapper.tsx (ajoutez temporairement)
 import React, { useEffect, useState } from "react";
-import { useDevToolsDetector } from "../../hooks/useDevToolsDetector";
-import { useScreenshotProtection } from "../../hooks/useScreenshotProtection";
+import { useSecurityDetection } from "../../hooks/useSecurityDetection";
+import { ScreenshotOverlay } from "../ScreenshotOverlay/ScreenshotOverlay";
 import "./SecurityWrapper.css";
 
 interface SecurityWrapperProps {
   children: React.ReactNode;
   securityEnabled?: boolean;
+  watermarkText?: string;
 }
 
 export const SecurityWrapper: React.FC<SecurityWrapperProps> = ({
   children,
   securityEnabled = true,
+  watermarkText = "Confidentiel - Ne pas partager",
 }) => {
   const [violationDetected, setViolationDetected] = useState(false);
+  const { screenshotDetected, devToolsDetected } =
+    useSecurityDetection(securityEnabled);
 
-  const devToolsOpen = useDevToolsDetector(() => {
-    if (securityEnabled) {
-      setViolationDetected(true);
-    }
-  });
-
-  useScreenshotProtection(securityEnabled);
+  // DEBUG: Afficher l'état de la protection
+  useEffect(() => {
+    console.log("SecurityWrapper mounted - securityEnabled:", securityEnabled);
+    console.log("Current path:", window.location.pathname);
+  }, [securityEnabled]);
 
   useEffect(() => {
-    if (devToolsOpen && securityEnabled) {
+    if (devToolsDetected && securityEnabled) {
+      console.log("DevTools detected on path:", window.location.pathname);
       setViolationDetected(true);
     }
-  }, [devToolsOpen, securityEnabled]);
+  }, [devToolsDetected, securityEnabled]);
 
   if (violationDetected) {
     return (
@@ -40,5 +44,13 @@ export const SecurityWrapper: React.FC<SecurityWrapperProps> = ({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <ScreenshotOverlay
+        visible={screenshotDetected}
+        text={`Capture détectée - ${watermarkText}`}
+      />
+      {children}
+    </>
+  );
 };

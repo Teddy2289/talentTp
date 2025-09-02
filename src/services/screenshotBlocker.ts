@@ -1,66 +1,119 @@
+// services/screenshotBlocker.ts
 class ScreenshotBlocker {
-  private isBlocking = false;
+  private detectionHandler: (() => void) | null = null;
+  private isProtectionEnabled = false;
+  private lastKeyPressTime = 0;
 
-  public enableProtection() {
-    if (this.isBlocking) return;
+  enableProtection(handler: () => void) {
+    this.detectionHandler = handler;
+    this.isProtectionEnabled = true;
 
-    this.blockPrintScreen();
-    this.blockContextMenu();
-    this.blockKeyboardShortcuts();
-    this.disableTextSelection();
-
-    this.isBlocking = true;
+    this.setupKeyboardDetection();
+    this.setupContextMenuDetection();
+    this.setupBlurDetection();
+    this.setupPrintDetection();
   }
 
-  public disableProtection() {
-    this.isBlocking = false;
+  disableProtection() {
+    this.isProtectionEnabled = false;
+    this.detectionHandler = null;
+
+    window.removeEventListener("keydown", this.handleKeyPress);
+    document.removeEventListener("contextmenu", this.handleContextMenu);
+    window.removeEventListener("blur", this.handleBlur);
+    window.removeEventListener("beforeprint", this.handleBeforePrint);
   }
 
-  private blockPrintScreen() {
-    document.addEventListener("keydown", this.handleKeyDown);
+  private setupKeyboardDetection() {
+    window.addEventListener("keydown", this.handleKeyPress);
   }
 
-  private handleKeyDown = (e: KeyboardEvent) => {
-    // Bloquer Impr Écran, F12, et autres raccourcis
+  private handleKeyPress = (event: KeyboardEvent) => {
+    if (!this.isProtectionEnabled) return;
+
+    // Détection des raccourcis de capture - version améliorée
+    const key = event.key.toLowerCase();
+    const now = Date.now();
+
+    // Détection Windows + Shift + S (plus fiable)
     if (
-      e.key === "PrintScreen" ||
-      e.keyCode === 44 || // PrintScreen
-      e.keyCode === 91 || // Cmd (Mac)
-      e.keyCode === 92 || // Cmd (Mac)
-      (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
-      (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
-      (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
-      (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
-      (e.ctrlKey && e.keyCode === 83) || // Ctrl+S
-      (e.ctrlKey && e.keyCode === 80) // Ctrl+P
+      event.shiftKey &&
+      event.key === "S" &&
+      (event.ctrlKey || event.metaKey)
     ) {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
+      event.preventDefault();
+      this.triggerDetection();
+      return;
     }
+
+    // Détection Print Screen
+    if (key === "printscreen" || event.keyCode === 44) {
+      event.preventDefault();
+      this.triggerDetection();
+      return;
+    }
+
+    // Détection macOS: Cmd+Shift+3/4/5
+    if (
+      event.metaKey &&
+      event.shiftKey &&
+      (key === "3" || key === "4" || key === "5")
+    ) {
+      event.preventDefault();
+      this.triggerDetection();
+      return;
+    }
+
+    // Détection combinaisons rapides (pour certains outils)
+    if (now - this.lastKeyPressTime < 200) {
+      // 200ms entre deux touches
+      if ((event.ctrlKey || event.metaKey) && key === "c") {
+        this.triggerDetection();
+      }
+    }
+
+    this.lastKeyPressTime = now;
   };
 
-  private blockContextMenu() {
+  private setupPrintDetection() {
+    window.addEventListener("beforeprint", this.handleBeforePrint);
+  }
+
+  private handleBeforePrint = (event: Event) => {
+    if (!this.isProtectionEnabled) return;
+    event.preventDefault();
+    this.triggerDetection();
+  };
+
+  private setupContextMenuDetection() {
     document.addEventListener("contextmenu", this.handleContextMenu);
   }
 
-  private handleContextMenu = (e: MouseEvent) => {
-    e.preventDefault();
-    return false;
+  private handleContextMenu = (event: MouseEvent) => {
+    if (!this.isProtectionEnabled) return;
+
+    event.preventDefault();
+    this.triggerDetection();
   };
 
-  private blockKeyboardShortcuts() {
-    document.addEventListener("keydown", this.handleKeyDown);
+  private setupBlurDetection() {
+    window.addEventListener("blur", this.handleBlur);
   }
 
-  private disableTextSelection() {
-    document.addEventListener("selectstart", this.handleSelectStart);
-  }
+  private handleBlur = () => {
+    if (!this.isProtectionEnabled) return;
 
-  private handleSelectStart = (e: Event) => {
-    e.preventDefault();
-    return false;
+    // Détection quand la fenêtre perd le focus
+    setTimeout(() => {
+      this.triggerDetection();
+    }, 100);
   };
+
+  private triggerDetection() {
+    if (this.detectionHandler) {
+      this.detectionHandler();
+    }
+  }
 }
 
 export const screenshotBlocker = new ScreenshotBlocker();

@@ -1,3 +1,4 @@
+// components/ProtectedRoute/ProtectedRoute.tsx
 import React from "react";
 import { SecurityWrapper } from "../SecurityWrapper/SecurityWrapper";
 import type { ProtectedRouteProps } from "../../types/security";
@@ -14,7 +15,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <div>Redirection vers la page de connexion...</div>;
   }
 
-  return (
-    <SecurityWrapper securityEnabled={requireAuth}>{children}</SecurityWrapper>
+  return requireAuth ? (
+    <SecurityWrapper securityEnabled={true}>{children}</SecurityWrapper>
+  ) : (
+    <>{children}</>
   );
 };
