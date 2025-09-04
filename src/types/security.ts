@@ -8,4 +8,6 @@ export interface SecurityConfig {
 export interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
+  requiredRole?: string;
+  securityEnabled?: boolean;
 }

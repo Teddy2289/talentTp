@@ -5,21 +5,45 @@
   --color-accent: #9333ea;
 }
 
-/* App.css */
 .App {
+  font-family: "Montserrat", sans-serif;
+  background-color: #0f0f0f;
+  color: #ffffff;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Ajoute un padding en haut pour compenser la navbar fixe */
-main {
-  padding-top: 80px;
+.logo-font {
+  font-family: "Passions Conflict", cursive;
+  font-weight: bold;
+  font-size: 60px;
 }
 
-/* Ajustement pour les pages spécifiques */
-.home-page,
-.profiles-page,
-.chat-page {
-  padding-top: 80px;
+/* Styles pour la barre de scroll */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 15, 15, 0.8);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #e1af30, #f3c754);
+  border-radius: 5px;
+  border: 2px solid rgba(15, 15, 15, 0.8);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #f3c754, #e1af30);
+}
+
+/* Pour Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e1af30 rgba(15, 15, 15, 0.8);
 }
 
 /* Pour les écrans mobiles */
