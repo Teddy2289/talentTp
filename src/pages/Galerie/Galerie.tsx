@@ -2,58 +2,38 @@ import { useState, useEffect } from "react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-
-// Remplacez ces chemins par les vôtres - ceux-ci sont probablement incorrects
-// Vérifiez la structure de votre dossier assets
-import image1 from "../../assets/image1.jpg";
-import image2 from "../../assets/image2.jpg";
-import image3 from "../../assets/image3.jpg";
-import image4 from "../../assets/image4.jpg";
-
-type Photo = {
-  id: number;
-  url: string;
-  alt: string;
-  tags: string[];
-  likes: number;
-};
-
-const photos: Photo[] = [
-  {
-    id: 1,
-    url: image1,
-    alt: "Image 1",
-    tags: ["a la une", "recent"],
-    likes: 0,
-  },
-  {
-    id: 2,
-    url: image2,
-    alt: "Image 2",
-    tags: ["a la une", "recent", "le plus aimé"],
-    likes: 0,
-  },
-  {
-    id: 3,
-    url: image3,
-    alt: "Image 3",
-    tags: ["le plus aimé"],
-    likes: 0,
-  },
-  {
-    id: 4,
-    url: image4,
-    alt: "Image 4",
-    tags: ["recent"],
-    likes: 0,
-  },
-];
+import { photoService } from "../../services/photoService"; // Import du service
+import type { Photo } from "../../types/photoType"; // Import du type
 
 export default function Galerie() {
   const [selectedTag, setSelectedTag] = useState<string>("all");
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [galleryPhotos, setGalleryPhotos] = useState<Photo[]>(photos);
+  const [galleryPhotos, setGalleryPhotos] = useState<Photo[]>([]);
   const [sortBy, setSortBy] = useState<string>("default");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Charger les photos depuis l'API
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+
+  const fetchPhotos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Appel au service pour récupérer toutes les photos
+      const photosData = await photoService.getAll();
+      setGalleryPhotos(photosData);
+    } catch (err) {
+      console.error("Erreur lors du chargement des photos:", err);
+      setError(
+        "Impossible de charger les photos. Veuillez réessayer plus tard."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Charger les likes depuis le localStorage au montage du composant
   useEffect(() => {
@@ -63,7 +43,7 @@ export default function Galerie() {
       setGalleryPhotos((prevPhotos) =>
         prevPhotos.map((photo) => ({
           ...photo,
-          likes: likesData[photo.id] || 0,
+          likes: likesData[photo.id] || photo.likes || 0,
         }))
       );
     }
@@ -86,7 +66,7 @@ export default function Galerie() {
     setGalleryPhotos((prevPhotos) =>
       prevPhotos.map((photo) => {
         if (photo.id === photoId) {
-          const newLikes = photo.likes + 1;
+          const newLikes = (photo.likes || 0) + 1;
           saveLikesToLocalStorage(photoId, newLikes);
           return { ...photo, likes: newLikes };
         }
@@ -99,17 +79,63 @@ export default function Galerie() {
   const filteredPhotos =
     selectedTag === "all"
       ? galleryPhotos
-      : galleryPhotos.filter((photo) => photo.tags.includes(selectedTag));
+      : galleryPhotos.filter(
+          (photo) => photo.tags && photo.tags.includes(selectedTag)
+        );
 
   // Trier les photos
   const sortedPhotos = [...filteredPhotos].sort((a, b) => {
     if (sortBy === "likes") {
-      return b.likes - a.likes;
+      return (b.likes || 0) - (a.likes || 0);
     } else if (sortBy === "recent") {
-      return b.id - a.id; // Suppose que les IDs plus récents sont plus grands
+      // Trier par date de création si disponible, sinon par ID
+      if (a.created_at && b.created_at) {
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+      return (b.id || 0) - (a.id || 0);
     }
-    return a.id - b.id; // Ordre par défaut
+    return (a.id || 0) - (b.id || 0); // Ordre par défaut
   });
+
+  // Fonction pour obtenir l'URL complète de l'image
+  const getImageUrl = (url: string) => {
+    if (url.startsWith("http")) {
+      return url;
+    }
+    // Si l'URL est relative, ajouter le base URL de votre API
+    return `http://localhost:3000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] text-white">
+        <div className="container mx-auto px-6 text-center">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#e1af30]"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] text-white">
+        <div className="container mx-auto px-6 text-center">
+          <div className="bg-red-900 bg-opacity-20 border border-red-700 text-red-300 px-6 py-4 rounded-lg max-w-md mx-auto">
+            <p>{error}</p>
+            <button
+              onClick={fetchPhotos}
+              className="mt-4 bg-[#e1af30] text-black px-4 py-2 rounded-full hover:bg-[#d4a225] transition-colors">
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -189,8 +215,8 @@ export default function Galerie() {
                     className="overflow-hidden rounded-lg shadow-lg cursor-pointer transform transition-transform duration-300 hover:scale-105 relative group"
                     onClick={() => setSelectedPhoto(photo)}>
                     <img
-                      src={photo.url}
-                      alt={photo.alt}
+                      src={getImageUrl(photo.url)}
+                      alt={photo.alt || "Photo sans titre"}
                       className="block w-full h-auto object-cover"
                       loading="lazy"
                     />
@@ -200,10 +226,10 @@ export default function Galerie() {
                       <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100 w-full">
                         <div className="flex justify-between items-center">
                           <h3 className="text-white font-medium text-sm truncate">
-                            {photo.alt}
+                            {photo.alt || "Sans titre"}
                           </h3>
                           <button
-                            onClick={(e) => handleLike(photo.id, e)}
+                            onClick={(e) => handleLike(photo.id!, e)}
                             className="flex items-center gap-1 bg-black bg-opacity-50 rounded-full px-3 py-1 text-white hover:text-[#e1af30] transition-colors duration-300"
                             aria-label="Aimer cette photo">
                             <svg
@@ -217,14 +243,14 @@ export default function Galerie() {
                                 clipRule="evenodd"
                               />
                             </svg>
-                            <span className="text-sm">{photo.likes}</span>
+                            <span className="text-sm">{photo.likes || 0}</span>
                           </button>
                         </div>
                       </div>
                     </div>
 
                     {/* Badge pour les photos à la une */}
-                    {photo.tags.includes("a la une") && (
+                    {photo.tags && photo.tags.includes("a la une") && (
                       <div className="absolute top-2 left-2 bg-[#e1af30] text-black text-xs font-bold px-2 py-1 rounded-full">
                         À la une
                       </div>
@@ -290,15 +316,15 @@ export default function Galerie() {
                   {selectedPhoto && (
                     <div className="relative">
                       <img
-                        src={selectedPhoto.url}
-                        alt={selectedPhoto.alt}
+                        src={getImageUrl(selectedPhoto.url)}
+                        alt={selectedPhoto.alt || "Photo sans titre"}
                         className="w-full h-auto rounded-lg"
                       />
 
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6 rounded-b-lg">
                         <div className="flex justify-between items-center">
                           <h3 className="text-white text-xl font-semibold">
-                            {selectedPhoto.alt}
+                            {selectedPhoto.alt || "Sans titre"}
                           </h3>
                           <button
                             onClick={() => {
@@ -306,7 +332,7 @@ export default function Galerie() {
                               const mockEvent = {
                                 stopPropagation: () => {},
                               } as React.MouseEvent;
-                              handleLike(selectedPhoto.id, mockEvent);
+                              handleLike(selectedPhoto.id!, mockEvent);
                               setGalleryPhotos((prev) => [...prev]); // Force update
                             }}
                             className="flex items-center gap-2 bg-black bg-opacity-50 rounded-full px-4 py-2 text-white hover:text-[#e1af30] transition-colors duration-300">
@@ -321,19 +347,22 @@ export default function Galerie() {
                                 clipRule="evenodd"
                               />
                             </svg>
-                            <span>{selectedPhoto.likes}</span>
+                            <span>{selectedPhoto.likes || 0}</span>
                           </button>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {selectedPhoto.tags.map((tag, index) => (
-                            <span
-                              key={index}
-                              className="bg-[#e1af30] bg-opacity-20 text-[#e1af30] text-xs px-3 py-1 rounded-full">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
+                        {selectedPhoto.tags &&
+                          selectedPhoto.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {selectedPhoto.tags.map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="bg-[#e1af30] bg-opacity-20 text-[#e1af30] text-xs px-3 py-1 rounded-full">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}

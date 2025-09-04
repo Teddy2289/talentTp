@@ -20,91 +20,110 @@ import Login from "./pages/Authentification/Login";
 import Register from "./pages/Authentification/Register";
 
 import "./App.css";
+import PhotoPage from "./pages/Admin/Photos/Photo";
+import CreatePhoto from "./pages/Admin/Photos/CreatePhoto";
+import UpdatePhoto from "./pages/Admin/Photos/UpdatePhoto";
+import UserCreate from "./pages/Admin/Users/UserCreate";
+import UserEdit from "./pages/Admin/Users/UserEdit";
+import { AlertProvider } from "./contexts/AlertContext";
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Routes publiques (non accessibles quand connecté) */}
-            <Route
-              path="/login"
-              element={
-                <ProtectedRoute requireAuth={false}>
-                  <Login />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <ProtectedRoute requireAuth={false}>
-                  <Register />
-                </ProtectedRoute>
-              }
-            />
+    <AlertProvider>
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Routes>
+              {/* Routes publiques (non accessibles quand connecté) */}
+              <Route
+                path="/login"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <Login />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <Register />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Page d'accueil publique */}
-            <Route
-              path="/"
-              element={
-                <FrontLayout>
-                  <Home />
-                </FrontLayout>
-              }
-            />
-
-            {/* Page d'erreur 403 */}
-            <Route path="/unauthorized" element={<Unauthorized />} />
-
-            {/* Routes front protégées */}
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute requireAuth={true}>
+              {/* Page d'accueil publique */}
+              <Route
+                path="/"
+                element={
                   <FrontLayout>
-                    <ChatPage />
+                    <Home />
                   </FrontLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/apropos"
-              element={
-                <ProtectedRoute requireAuth={false}>
-                  <FrontLayout>
-                    <Apropos />
-                  </FrontLayout>
-                </ProtectedRoute>
-              }
-            />
+                }
+              />
 
-            {/* Routes admin avec vérification de rôle */}
-            <Route
-              path="/admin/*"
-              element={
-                <ProtectedRoute requireAuth={true} requiredRole="Admin">
-                  <AdminLayout>
-                    <Routes>
-                      <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="users" element={<AdminUsers />} />
-                      <Route
-                        path=""
-                        element={<Navigate to="dashboard" replace />}
-                      />
-                    </Routes>
-                  </AdminLayout>
-                </ProtectedRoute>
-              }
-            />
+              {/* Page d'erreur 403 */}
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Route de fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+              {/* Routes front protégées */}
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <FrontLayout>
+                      <ChatPage />
+                    </FrontLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/apropos"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <FrontLayout>
+                      <Apropos />
+                    </FrontLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Routes admin avec vérification de rôle */}
+              <Route
+                path="/admin/*"
+                element={
+                  <ProtectedRoute requireAuth={true} requiredRole="Admin">
+                    <AdminLayout>
+                      <Routes>
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        {/* Routes de gestion des utilisateurs */}
+                        <Route path="users" element={<AdminUsers />} />
+                        <Route path="users/create" element={<UserCreate />} />
+                        <Route path="users/edit/:id" element={<UserEdit />} />
+
+                        {/* Routes de gestion des photos */}
+                        <Route path="photo" element={<PhotoPage />} />
+                        <Route path="photo/create" element={<CreatePhoto />} />
+                        <Route
+                          path="photo/edit/:id"
+                          element={<UpdatePhoto />}
+                        />
+                        <Route
+                          path=""
+                          element={<Navigate to="dashboard" replace />}
+                        />
+                      </Routes>
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Route de fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </AlertProvider>
   );
 };
 

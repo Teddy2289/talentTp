@@ -94,7 +94,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 {isSidebarOpen && <span className="ml-3">Catégories</span>}
               </Link>
               <Link
-                to="/admin/gallery"
+                to="/admin/photo"
                 className="flex items-center px-4 py-2 text-indigo-100 hover:bg-[#e1af30] rounded-lg group">
                 <BookImage className="w-5 h-5" />
                 {isSidebarOpen && (

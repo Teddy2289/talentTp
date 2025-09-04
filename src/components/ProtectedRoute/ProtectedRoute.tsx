@@ -8,7 +8,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireAuth = true,
   requiredRole,
-  securityEnabled = true,
+  securityEnabled = false,
 }) => {
   const { user, isLoading } = useAuth();
 
