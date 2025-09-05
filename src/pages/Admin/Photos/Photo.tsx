@@ -71,8 +71,8 @@ export default function PhotoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen  p-2">
+      <div className="max-w-7xl mx-auto bg-gray-50 p-4">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <div>

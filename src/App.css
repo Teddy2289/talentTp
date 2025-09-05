@@ -3,6 +3,44 @@
 @theme {
   --color-brand: #1e40af;
   --color-accent: #9333ea;
+  /* Ajoutez les couleurs Pluto au thème */
+  --color-pluto-deep-blue: #0f172a;
+  --color-pluto-dark-blue: #1e293b;
+  --color-pluto-medium-blue: #334155;
+  --color-pluto-light-blue: #475569;
+  --color-pluto-orange: #f97316;
+  --color-pluto-yellow: #f59e0b;
+}
+
+/* Vous pouvez aussi ajouter ces classes utilitaires personnalisées */
+@layer utilities {
+  .bg-pluto-deep-blue {
+    background-color: var(--color-pluto-deep-blue);
+  }
+  .bg-pluto-dark-blue {
+    background-color: var(--color-pluto-dark-blue);
+  }
+  .bg-pluto-medium-blue {
+    background-color: var(--color-pluto-medium-blue);
+  }
+  .bg-pluto-light-blue {
+    background-color: var(--color-pluto-light-blue);
+  }
+  .bg-pluto-orange {
+    background-color: var(--color-pluto-orange);
+  }
+  .bg-pluto-yellow {
+    background-color: var(--color-pluto-yellow);
+  }
+  .text-pluto-orange {
+    color: var(--color-pluto-orange);
+  }
+  .text-pluto-yellow {
+    color: var(--color-pluto-yellow);
+  }
+  .border-pluto-light-blue {
+    border-color: var(--color-pluto-light-blue);
+  }
 }
 
 .App {

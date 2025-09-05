@@ -26,6 +26,7 @@ import UpdatePhoto from "./pages/Admin/Photos/UpdatePhoto";
 import UserCreate from "./pages/Admin/Users/UserCreate";
 import UserEdit from "./pages/Admin/Users/UserEdit";
 import { AlertProvider } from "./contexts/AlertContext";
+import Parametrage from "./pages/Admin/Parametrage/Parametrage";
 
 const App: React.FC = () => {
   return (
@@ -107,6 +108,10 @@ const App: React.FC = () => {
                           path="photo/edit/:id"
                           element={<UpdatePhoto />}
                         />
+                        {/* Route de paramétrage */}
+
+                        <Route path="parametrage" element={<Parametrage />} />
+
                         <Route
                           path=""
                           element={<Navigate to="dashboard" replace />}

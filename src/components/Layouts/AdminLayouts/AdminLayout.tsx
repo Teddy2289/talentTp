@@ -120,7 +120,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 {isSidebarOpen && <span className="ml-3">Sécurité</span>}
               </Link>
               <Link
-                to="/admin/settings"
+                to="/admin/parametrage"
                 className="flex items-center px-4 py-2 text-indigo-100 hover:bg-[#e1af30] rounded-lg group">
                 <Settings className="w-5 h-5" />
                 {isSidebarOpen && <span className="ml-3">Paramètres</span>}

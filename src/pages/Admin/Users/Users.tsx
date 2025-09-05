@@ -94,10 +94,10 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {/* Barre de recherche et filtres */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+      <div className="bg-pluto-dark-blue p-6 rounded-lg shadow-md mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Rechercher
             </label>
             <input
@@ -105,19 +105,21 @@ const AdminUsers: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Email, prénom, nom..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Type d'utilisateur
             </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
-              <option value="all">Tous</option>
+              <option className="text-white" value="all">
+                Tous
+              </option>
               <option value={UserType.ADMIN}>Administrateur</option>
               <option value={UserType.USER}>Utilisateur</option>
             </select>
@@ -139,23 +141,23 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {/* Tableau des utilisateurs */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-pluto-dark-blue text-white  rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-pluto-dark-blue">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                 Utilisateur
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                 Statut
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                 Date de création
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -168,7 +170,7 @@ const AdminUsers: React.FC = () => {
                     <div className="font-medium text-gray-900">
                       {user.first_name} {user.last_name}
                     </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="text-sm text-white">{user.email}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -193,7 +195,7 @@ const AdminUsers: React.FC = () => {
                     {user.is_verified ? "Vérifié" : "En attente"}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-6 py-4 text-sm text-white">
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4">
@@ -216,7 +218,7 @@ const AdminUsers: React.FC = () => {
         </table>
 
         {users.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-white">
             Aucun utilisateur trouvé
           </div>
         )}
