@@ -9,6 +9,9 @@ interface AboutSettingsFormProps {
   onSave: (
     settings: AboutSettings
   ) => Promise<{ success: boolean; error?: string }>;
+  onUpdateModel: (
+    model: Model
+  ) => Promise<{ success: boolean; error?: string }>;
   loading?: boolean;
 }
 
@@ -17,20 +20,34 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
   models,
   selectedModel,
   onSave,
+  onUpdateModel,
   loading = false,
 }) => {
   const [localSettings, setLocalSettings] =
     React.useState<AboutSettings>(settings);
+  const [editingModel, setEditingModel] = React.useState<Model | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [modelLoading, setModelLoading] = React.useState(false);
 
   React.useEffect(() => {
     setLocalSettings(settings);
-  }, [settings]);
+    setEditingModel(selectedModel);
+  }, [settings, selectedModel]);
 
   const handleChange = (field: keyof AboutSettings, value: any) => {
     setLocalSettings((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleModelChange = (field: keyof Model, value: any) => {
+    if (editingModel) {
+      setEditingModel((prev) => ({
+        ...prev!,
+        [field]: value,
+      }));
+    }
   };
 
   const handleSave = async () => {
@@ -40,6 +57,30 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
     } else {
       alert(`Erreur: ${result.error}`);
     }
+  };
+
+  const handleSaveModel = async () => {
+    if (!editingModel) return;
+
+    setModelLoading(true);
+    try {
+      const result = await onUpdateModel(editingModel);
+      if (result.success) {
+        alert("Modèle mis à jour avec succès!");
+        setIsEditing(false);
+      } else {
+        alert(`Erreur: ${result.error}`);
+      }
+    } catch (error) {
+      alert("Erreur lors de la mise à jour du modèle");
+    } finally {
+      setModelLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingModel(selectedModel);
+    setIsEditing(false);
   };
 
   return (
@@ -81,11 +122,12 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
               }
               className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange">
               <option value="">Sélectionner un modèle</option>
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.prenom}
-                </option>
-              ))}
+              {Array.isArray(models) &&
+                models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.prenom}
+                  </option>
+                ))}
             </select>
           </div>
         </div>
@@ -119,7 +161,193 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end">
+        {/* Section d'édition du modèle sélectionné */}
+        {editingModel && (
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-pluto-yellow">
+                Édition du modèle sélectionné
+              </h3>
+              {isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-pluto-orange hover:bg-opacity-90 text-white font-semibold rounded-lg transition-all duration-200">
+                  Modifier le modèle
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveModel}
+                    disabled={modelLoading}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50">
+                    {modelLoading ? "Sauvegarde..." : "Sauvegarder"}
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all duration-200">
+                    Annuler
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-group">
+                <label className="block text-sm font-medium mb-2">
+                  Prénom *
+                </label>
+                <input
+                  type="text"
+                  value={editingModel.prenom}
+                  onChange={(e) => handleModelChange("prenom", e.target.value)}
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="block text-sm font-medium mb-2">Âge</label>
+                <input
+                  type="number"
+                  value={editingModel.age}
+                  onChange={(e) =>
+                    handleModelChange("age", parseInt(e.target.value) || 0)
+                  }
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="block text-sm font-medium mb-2">
+                  Nationalité
+                </label>
+                <input
+                  type="text"
+                  value={editingModel.nationalite}
+                  onChange={(e) =>
+                    handleModelChange("nationalite", e.target.value)
+                  }
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="block text-sm font-medium mb-2">
+                  Profession
+                </label>
+                <input
+                  type="text"
+                  value={editingModel.profession}
+                  onChange={(e) =>
+                    handleModelChange("profession", e.target.value)
+                  }
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group md:col-span-2">
+                <label className="block text-sm font-medium mb-2">
+                  Passe-temps
+                </label>
+                <input
+                  type="text"
+                  value={editingModel.passe_temps}
+                  onChange={(e) =>
+                    handleModelChange("passe_temps", e.target.value)
+                  }
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group md:col-span-2">
+                <label className="block text-sm font-medium mb-2">
+                  Citation
+                </label>
+                <textarea
+                  value={editingModel.citation}
+                  onChange={(e) =>
+                    handleModelChange("citation", e.target.value)
+                  }
+                  disabled={isEditing}
+                  rows={2}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="block text-sm font-medium mb-2">
+                  Domicile
+                </label>
+                <input
+                  type="text"
+                  value={editingModel.domicile}
+                  onChange={(e) =>
+                    handleModelChange("domicile", e.target.value)
+                  }
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="block text-sm font-medium mb-2">
+                  Localisation
+                </label>
+                <input
+                  type="text"
+                  value={editingModel.localisation}
+                  onChange={(e) =>
+                    handleModelChange("localisation", e.target.value)
+                  }
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="form-group md:col-span-2">
+                <label className="block text-sm font-medium mb-2">Photo</label>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const previewUrl = URL.createObjectURL(file);
+                      handleModelChange("photo", previewUrl);
+                    }
+                  }}
+                  disabled={isEditing}
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {editingModel.photo && (
+                <div className="form-group md:col-span-2">
+                  <label className="block text-sm font-medium mb-2">
+                    Aperçu de la photo
+                  </label>
+                  <div className="mt-2">
+                    <img
+                      src={`${import.meta.env.VITE_IMG_URL}${
+                        editingModel.photo
+                      }`}
+                      alt={editingModel.prenom}
+                      className="w-32 h-32 object-cover rounded-lg border-2 border-pluto-light-blue"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-4">
           <button
             onClick={handleSave}
             disabled={loading}
@@ -140,27 +368,56 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
             {localSettings.about_title}
           </h3>
 
-          {selectedModel && (
+          {editingModel && (
             <div className="mb-4">
               <h4 className="font-semibold text-pluto-yellow mb-2">
                 Modèle sélectionné:
               </h4>
               <div className="bg-pluto-dark-blue p-3 rounded-lg">
-                <p className="text-white font-semibold">
-                  {selectedModel.prenom}
-                </p>
-                {selectedModel.age && (
-                  <p className="text-pluto-light-blue">
-                    {selectedModel.age} ans
-                  </p>
-                )}
-                {selectedModel.profession && (
-                  <p className="text-white">{selectedModel.profession}</p>
-                )}
-                {selectedModel.localisation && (
-                  <p className="text-pluto-light-blue">
-                    📍 {selectedModel.localisation}
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-white font-semibold">
+                      Prénom: {editingModel.prenom}
+                    </p>
+                    <p className="text-pluto-light-blue">
+                      Âge: {editingModel.age} ans
+                    </p>
+                    <p className="text-white">
+                      Nationalité: {editingModel.nationalite}
+                    </p>
+                    <p className="text-pluto-light-blue">
+                      Profession: {editingModel.profession}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-white">
+                      Localisation: {editingModel.localisation}
+                    </p>
+                    <p className="text-pluto-light-blue">
+                      Domicile: {editingModel.domicile}
+                    </p>
+                    <p className="text-white">
+                      Passe-temps: {editingModel.passe_temps}
+                    </p>
+                    <p className="text-pluto-light-blue italic">
+                      "{editingModel.citation}"
+                    </p>
+                  </div>
+                </div>
+
+                {editingModel.photo && (
+                  <div className="mt-4 text-center">
+                    <img
+                      src={`${import.meta.env.VITE_IMG_URL}${
+                        editingModel.photo
+                      }`}
+                      alt={editingModel.prenom}
+                      className="w-48 h-48 object-cover rounded-lg mx-auto border-2 border-pluto-light-blue"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -181,7 +438,7 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
               </div>
             )}
 
-          {!selectedModel && !localSettings.custom_content && (
+          {!editingModel && !localSettings.custom_content && (
             <p className="text-pluto-light-blue italic">
               Aucun contenu configuré pour l'instant
             </p>

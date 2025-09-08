@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import {
-  settingsService,
-  type AboutSettings,
-} from "../services/settingsService";
+import { type AboutSettings } from "../services/settingsService";
 import { modelService, type Model } from "../services/modelService";
+import { settingsApi } from "../core/settingsApi";
 
 export const useAboutSettings = () => {
   const [settings, setSettings] = useState<AboutSettings | null>(null);
@@ -16,22 +14,30 @@ export const useAboutSettings = () => {
     try {
       setLoading(true);
 
-      // Charger les paramètres
-      const settingsResponse = await settingsService.getSectionSettings(
-        "about"
-      );
-      setSettings(settingsResponse.data.settings);
+      // 1. Charger les paramètres de la section "about"
+      const settingsResponse = await settingsApi.getSectionSettings("about");
+      const aboutSettings = settingsResponse.data;
+      setSettings(aboutSettings);
 
-      // Charger les modèles disponibles
-      const modelsResponse = await modelService.getAllModels();
-      setModels(modelsResponse.data);
+      // 2. Charger tous les modèles disponibles
+      const modelsData = await modelService.getAllModels();
+      console.log("Modèles chargés:", modelsData);
+      setModels(modelsData);
 
-      // Charger le modèle sélectionné si existant
-      if (settingsResponse.data.settings.selected_model_id) {
-        const modelResponse = await modelService.getModel(
-          settingsResponse.data.settings.selected_model_id
-        );
-        setSelectedModel(modelResponse.data);
+      // 3. Si un modèle est sélectionné, charger ses infos détaillées
+      if (aboutSettings?.selected_model_id) {
+        try {
+          const modelData = await modelService.getModel(
+            aboutSettings.selected_model_id
+          );
+          console.log("Modèle sélectionné chargé:", modelData);
+          setSelectedModel(modelData);
+        } catch (modelError) {
+          console.warn("Modèle sélectionné introuvable:", modelError);
+          setSelectedModel(null);
+        }
+      } else {
+        setSelectedModel(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur de chargement");
@@ -43,15 +49,19 @@ export const useAboutSettings = () => {
   const saveSettings = async (newSettings: AboutSettings) => {
     try {
       setLoading(true);
-      const response = await settingsService.updateAboutSettings(newSettings);
-      setSettings(response.data.settings);
 
-      // Mettre à jour le modèle sélectionné
+      // PUT vers /settings/about
+      const response = await settingsApi.updateAboutSettings(newSettings);
+
+      // Mettre à jour les settings locaux
+      setSettings(response.data.settings || response.data);
+
+      // Mettre à jour le modèle sélectionné si nécessaire
       if (newSettings.selected_model_id) {
-        const modelResponse = await modelService.getModel(
+        const modelData = await modelService.getModel(
           newSettings.selected_model_id
         );
-        setSelectedModel(modelResponse.data);
+        setSelectedModel(modelData);
       } else {
         setSelectedModel(null);
       }
@@ -71,6 +81,26 @@ export const useAboutSettings = () => {
     loadData();
   }, []);
 
+  const updateModel = async (model: Model) => {
+    try {
+      setLoading(true);
+      const response = await modelService.updateModel(model.id, model);
+      // Mettre à jour le modèle dans la liste
+      setModels((prev) => prev.map((m) => (m.id === model.id ? model : m)));
+      // Mettre à jour le modèle sélectionné si c'est le même
+      if (selectedModel?.id === model.id) {
+        setSelectedModel(model);
+      }
+      return { success: true, data: response };
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur de mise à jour";
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     settings,
     models,
@@ -79,5 +109,6 @@ export const useAboutSettings = () => {
     error,
     saveSettings,
     refresh: loadData,
+    updateModel,
   };
 };

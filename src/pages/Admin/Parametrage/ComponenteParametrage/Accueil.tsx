@@ -1,3 +1,4 @@
+// ComponenteParametrage/Accueil.tsx
 import React from "react";
 import { useHomeSettings } from "../../../../hooks/useHomeSettings";
 import HomeSettingsForm from "../../../../components/Ui/forms/HomeSettingsForm";
@@ -40,7 +41,10 @@ const Accueil: React.FC = () => {
 
   return (
     <HomeSettingsForm
-      settings={settings}
+      settings={{
+        ...settings,
+        main_title: settings.main_title ?? "",
+      }}
       onSave={saveSettings}
       onAddSlide={addSlide}
       onUpdateSlide={updateSlide}

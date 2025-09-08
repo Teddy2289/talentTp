@@ -3,8 +3,15 @@ import { useAboutSettings } from "../../../../hooks/useAboutSettings";
 import AboutSettingsForm from "../../../../components/Ui/forms/AboutSettingsForm";
 
 const AproposSetting: React.FC = () => {
-  const { settings, models, selectedModel, loading, error, saveSettings } =
-    useAboutSettings();
+  const {
+    settings,
+    models,
+    selectedModel,
+    loading,
+    error,
+    saveSettings,
+    updateModel,
+  } = useAboutSettings();
 
   if (loading && !settings) {
     return (
@@ -37,6 +44,7 @@ const AproposSetting: React.FC = () => {
       selectedModel={selectedModel}
       onSave={saveSettings}
       loading={loading}
+      onUpdateModel={updateModel}
     />
   );
 };

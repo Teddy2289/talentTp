@@ -1,9 +1,18 @@
+// hooks/useHomeSettings.ts
 import { useState, useEffect } from "react";
-import {
-  settingsService,
-  type HomeSettings,
-  type Slide,
-} from "../services/settingsService";
+import { settingsApi } from "../core/settingsApi";
+
+export interface Slide {
+  imageUrl: string;
+  altText: string;
+}
+
+export interface HomeSettings {
+  main_title: string;
+  main_subtitle: string;
+  show_social_in_hero: boolean;
+  slides: Slide[];
+}
 
 export const useHomeSettings = () => {
   const [settings, setSettings] = useState<HomeSettings | null>(null);
@@ -13,8 +22,14 @@ export const useHomeSettings = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const response = await settingsService.getSectionSettings("home");
-      setSettings(response.data.settings);
+      const response = await settingsApi.getSectionSettings("home");
+      const homeData = response.data;
+      setSettings({
+        main_title: homeData.main_title,
+        main_subtitle: homeData.main_subtitle,
+        show_social_in_hero: homeData.show_social_in_hero,
+        slides: homeData.slides || [],
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur de chargement");
     } finally {
@@ -25,8 +40,8 @@ export const useHomeSettings = () => {
   const saveSettings = async (newSettings: HomeSettings) => {
     try {
       setLoading(true);
-      const response = await settingsService.updateHomeSettings(newSettings);
-      setSettings(response.data.settings);
+      const response = await settingsApi.updateHomeSettings(newSettings);
+      setSettings(newSettings);
       return { success: true, data: response.data };
     } catch (err) {
       const errorMessage =
@@ -38,45 +53,27 @@ export const useHomeSettings = () => {
     }
   };
 
-  const addSlide = (newSlide: Omit<Slide, "order">) => {
+  const addSlide = (newSlide: Slide) => {
     if (!settings) return;
-
-    const slides = [...settings.slides];
-    const newOrder =
-      slides.length > 0 ? Math.max(...slides.map((s) => s.order)) + 1 : 1;
-
-    const slide: Slide = {
-      ...newSlide,
-      order: newOrder,
-      is_active: newSlide.is_active !== undefined ? newSlide.is_active : true,
-    };
-
     setSettings({
       ...settings,
-      slides: [...slides, slide],
+      slides: [...settings.slides, newSlide],
     });
   };
 
   const updateSlide = (index: number, updates: Partial<Slide>) => {
     if (!settings) return;
-
     const slides = [...settings.slides];
-    slides[index] = { ...slides[index], ...updates };
-
-    setSettings({
-      ...settings,
-      slides,
-    });
+    if (index >= 0 && index < slides.length) {
+      slides[index] = { ...slides[index], ...updates };
+      setSettings({ ...settings, slides });
+    }
   };
 
   const removeSlide = (index: number) => {
-    if (!settings || settings.slides.length <= 1) return;
-
+    if (!settings) return;
     const slides = settings.slides.filter((_, i) => i !== index);
-    setSettings({
-      ...settings,
-      slides: slides.map((slide, i) => ({ ...slide, order: i + 1 })),
-    });
+    setSettings({ ...settings, slides });
   };
 
   const updateHero = (updates: Partial<HomeSettings>) => {

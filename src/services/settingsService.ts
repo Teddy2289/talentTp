@@ -19,11 +19,8 @@ export interface LogoSettings {
 }
 
 export interface Slide {
-  image: string;
-  title: string;
-  subtitle: string;
-  is_active: boolean;
-  order: number;
+  imageUrl: string;
+  altText: string;
 }
 
 export interface HomeSettings {
@@ -58,8 +55,25 @@ class SettingsService {
 
   // Récupérer les paramètres d'une section spécifique
   async getSectionSettings(section: SettingsSection) {
-    const response = await api.get(`/settings/${section}`);
-    return response.data;
+    // Appel à l'endpoint général
+    const response = await api.get("/settings");
+    const sectionData = response.data.data.find(
+      (item: any) => item.section === section
+    );
+
+    if (!sectionData) {
+      throw new Error(`Section ${section} introuvable`);
+    }
+
+    return {
+      data: sectionData.settings,
+      metadata: {
+        id: sectionData.id,
+        is_active: sectionData.is_active,
+        created_at: sectionData.created_at,
+        updated_at: sectionData.updated_at,
+      },
+    };
   }
 
   // Récupérer les paramètres pour le frontend (public)

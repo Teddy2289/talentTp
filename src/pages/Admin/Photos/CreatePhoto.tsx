@@ -2,19 +2,43 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { photoService } from "../../../services/photoService";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, XIcon } from "lucide-react";
 
 export default function CreatePhoto() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
-  const [tags, setTags] = useState(""); // 🆕 Add state for tags
-  const [likes, setLikes] = useState(0); // 🆕 Add state for likes, initialized to 0
+  const [tags, setTags] = useState<string[]>([]);
+  const [likes, setLikes] = useState(0);
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // 🆕 Liste des tags prédéfinis
+  const availableTags = [
+    "Nature",
+    "Voyage",
+    "Architecture",
+    "Nourriture",
+    "Animaux",
+    "Portrait",
+  ];
+
+  // 🆕 Fonction pour gérer la sélection dans le <select>
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions).map(
+      (option) => option.value
+    );
+    setTags(selectedOptions);
+  };
+
+  // La fonction `removeTag` peut être conservée pour permettre la désélection visuelle
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
+
+  // Le reste du code...
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setImage(file);
@@ -63,8 +87,7 @@ export default function CreatePhoto() {
       const formData = new FormData();
       formData.append("alt", title.trim());
       formData.append("image", image);
-      // 🆕 Add tags and likes to formData
-      formData.append("tags", tags);
+      formData.append("tags", JSON.stringify(tags));
       formData.append("likes", likes.toString());
 
       await photoService.create(formData, token);
@@ -175,21 +198,50 @@ export default function CreatePhoto() {
               />
             </div>
 
-            {/* 🆕 Tags Input */}
+            {/* Tags Select */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags (séparés par des virgules)
+                Tags
               </label>
-              <input
-                type="text"
-                placeholder="Ex: nature, voyage, montagne"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
-              />
+
+              {/* Tags display */}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="ml-2 hover:text-yellow-900">
+                        <XIcon size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Nouvelle liste déroulante pour les tags */}
+              <select
+                multiple
+                value={tags} // Assurez-vous que l'état 'tags' est lié à la valeur du select
+                onChange={handleSelectChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200">
+                {availableTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs
+                tags.
+              </p>
             </div>
 
-            {/* 🆕 Likes Input */}
+            {/* Likes Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Likes
@@ -216,7 +268,7 @@ export default function CreatePhoto() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:yellow-700 disabled:opacity-50 transition-all duration-200 flex items-center space-x-2">
+                className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 transition-all duration-200 flex items-center space-x-2">
                 {isSubmitting && (
                   <svg
                     className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
