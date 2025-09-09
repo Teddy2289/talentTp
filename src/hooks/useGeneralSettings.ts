@@ -2,16 +2,20 @@
 import { useState, useEffect } from "react";
 import { settingsApi } from "../core/settingsApi";
 
+export interface SocialLink {
+  platform: string;
+  url: string;
+  icon: string;
+  is_active: boolean;
+}
+
 export interface GeneralSettings {
-  siteTitle: string;
-  siteDescription: string;
-  instagramLink: string;
-  socialTitle: string;
-  facebookUrl?: string;
-  twitterUrl?: string;
-  linkedinUrl?: string;
-  youtubeUrl?: string;
-  instagramUrl?: string;
+  site_title: string;
+  site_subtitle?: string;
+  associated_model_id?: number;
+  show_navbar: boolean;
+  social_title?: string;
+  social_links: SocialLink[];
 }
 
 export const useGeneralSettings = () => {
@@ -19,30 +23,58 @@ export const useGeneralSettings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // hooks/useGeneralSettings.ts
   const loadSettings = async () => {
     try {
       setLoading(true);
       const response = await settingsApi.getSectionSettings("general");
+      console.log("Response from API:", response);
 
-      let raw = response.data;
-      if (response.data?.data?.settings) {
-        raw = response.data.data.settings;
-      }
-
-      // 🔑 Normalisation backend -> frontend
+      const raw = response.data || {};
+      console.log("Raw data:", raw);
+      console.log("Social links type:", typeof raw.social_links);
+      console.log("Social links value:", raw.social_links);
+      console.log("Is array:", Array.isArray(raw.social_links));
       const normalized: GeneralSettings = {
-        siteTitle: raw.site_title || "",
-        siteDescription: raw.site_subtitle || "", // <== subtitle au lieu de description
-        socialTitle: raw.social_title || "",
-        facebookUrl: raw.facebook_url || "",
-        twitterUrl: raw.twitter_url || "",
-        instagramUrl: raw.instagram_url || "",
-        linkedinUrl: raw.linkedin_url || "",
-        youtubeUrl: raw.youtube_url || "",
-        instagramLink: raw.instagram_url || "", // doublon pour compatibilité
+        site_title: raw.site_title || "",
+        site_subtitle: raw.site_subtitle || "",
+        associated_model_id: raw.associated_model_id || null,
+        show_navbar: raw.show_navbar !== undefined ? raw.show_navbar : true,
+        social_title: raw.social_title || "Suivez-nous",
+        social_links: raw.social_links || [
+          {
+            platform: "facebook",
+            url: "",
+            icon: "fa-facebook",
+            is_active: false,
+          },
+          {
+            platform: "twitter",
+            url: "",
+            icon: "fa-twitter",
+            is_active: false,
+          },
+          {
+            platform: "instagram",
+            url: "",
+            icon: "fa-instagram",
+            is_active: false,
+          },
+          {
+            platform: "linkedin",
+            url: "",
+            icon: "fa-linkedin",
+            is_active: false,
+          },
+          {
+            platform: "youtube",
+            url: "",
+            icon: "fa-youtube",
+            is_active: false,
+          },
+        ],
       };
 
+      console.log("Normalized settings:", normalized);
       setSettings(normalized);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur de chargement");
@@ -56,33 +88,27 @@ export const useGeneralSettings = () => {
       setLoading(true);
 
       const payload = {
-        site_title: newSettings.siteTitle,
-        site_subtitle: newSettings.siteDescription, // attention: subtitle
-        social_title: newSettings.socialTitle,
-        facebook_url: newSettings.facebookUrl,
-        twitter_url: newSettings.twitterUrl,
-        instagram_url: newSettings.instagramUrl,
-        linkedin_url: newSettings.linkedinUrl,
-        youtube_url: newSettings.youtubeUrl,
+        site_title: newSettings.site_title,
+        site_subtitle: newSettings.site_subtitle,
+        associated_model_id: newSettings.associated_model_id,
+        show_navbar: newSettings.show_navbar,
+        social_title: newSettings.social_title,
+        social_links: newSettings.social_links,
       };
 
       const response = await settingsApi.updateGeneralSettings(payload);
 
-      let raw = response.data;
-      if (response.data?.data?.settings) {
-        raw = response.data.data.settings;
-      }
+      // ✅ CORRECTION ICI aussi : Les données retournées sont directement dans response.data
+      const raw = response.data || {};
+      console.log("Save response:", raw);
 
       const normalized: GeneralSettings = {
-        siteTitle: raw.site_title || "",
-        siteDescription: raw.site_subtitle || "",
-        socialTitle: raw.social_title || "",
-        facebookUrl: raw.facebook_url || "",
-        twitterUrl: raw.twitter_url || "",
-        instagramUrl: raw.instagram_url || "",
-        linkedinUrl: raw.linkedin_url || "",
-        youtubeUrl: raw.youtube_url || "",
-        instagramLink: raw.instagram_url || "",
+        site_title: raw.site_title || "",
+        site_subtitle: raw.site_subtitle || "",
+        associated_model_id: raw.associated_model_id || null,
+        show_navbar: raw.show_navbar !== undefined ? raw.show_navbar : true,
+        social_title: raw.social_title || "Suivez-nous",
+        social_links: raw.social_links || [],
       };
 
       setSettings(normalized);

@@ -30,11 +30,8 @@ const AdminUsers: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (
-      !window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")
-    ) {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?"))
       return;
-    }
 
     try {
       await userService.delete(id, token!);
@@ -82,10 +79,9 @@ const AdminUsers: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Gestion des Utilisateurs
-        </h1>
+        <h1 className="text-3xl font-bold ">Gestion des Utilisateurs</h1>
         <Link
           to="/admin/users/create"
           className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
@@ -94,10 +90,10 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {/* Barre de recherche et filtres */}
-      <div className="bg-pluto-dark-blue p-6 rounded-lg shadow-md mb-8">
+      <div className="bg-gray-100 p-6 rounded-lg shadow-md mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Rechercher
             </label>
             <input
@@ -105,21 +101,19 @@ const AdminUsers: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Email, prénom, nom..."
-              className="w-full px-3 py-2 border text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Type d'utilisateur
             </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
-              <option className="text-white" value="all">
-                Tous
-              </option>
+              <option value="all">Tous</option>
               <option value={UserType.ADMIN}>Administrateur</option>
               <option value={UserType.USER}>Utilisateur</option>
             </select>
@@ -141,23 +135,23 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {/* Tableau des utilisateurs */}
-      <div className="bg-pluto-dark-blue text-white  rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white text-gray-800 rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
-          <thead className="bg-pluto-dark-blue">
+          <thead className="bg-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Utilisateur
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Statut
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Date de création
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -166,12 +160,10 @@ const AdminUsers: React.FC = () => {
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {user.first_name} {user.last_name}
-                    </div>
-                    <div className="text-sm text-white">{user.email}</div>
+                  <div className="font-medium">
+                    {user.first_name} {user.last_name}
                   </div>
+                  <div className="text-sm text-gray-600">{user.email}</div>
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -195,14 +187,14 @@ const AdminUsers: React.FC = () => {
                     {user.is_verified ? "Vérifié" : "En attente"}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-white">
+                <td className="px-6 py-4 text-sm">
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex space-x-2">
                     <Link
                       to={`/admin/users/edit/${user.id}`}
-                      className="text-yellow-600 hover:text-yellow-900">
+                      className="text-indigo-600 hover:text-indigo-800 font-medium">
                       Modifier
                     </Link>
                     <button
@@ -218,7 +210,7 @@ const AdminUsers: React.FC = () => {
         </table>
 
         {users.length === 0 && (
-          <div className="text-center py-8 text-white">
+          <div className="text-center py-8 text-gray-600">
             Aucun utilisateur trouvé
           </div>
         )}

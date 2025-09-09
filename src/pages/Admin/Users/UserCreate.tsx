@@ -53,12 +53,10 @@ const UserCreate: React.FC = () => {
       <div className="flex items-center mb-8">
         <button
           onClick={() => navigate("/admin/users")}
-          className="mr-4 text-gray-600 hover:text-gray-900">
+          className="mr-4  hover:text-yellow-200">
           ← Retour
         </button>
-        <h1 className="text-3xl font-bold text-gray-800">
-          Créer un Utilisateur
-        </h1>
+        <h1 className="text-3xl font-bold ">Créer un Utilisateur</h1>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md">

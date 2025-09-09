@@ -1,0 +1,146 @@
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { useModels } from "../../../hooks/useModels";
+
+const AdminModels: React.FC = () => {
+  const { models, loading, error, deleteModel } = useModels();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce modèle ?"))
+      return;
+    try {
+      await deleteModel(id);
+    } catch (err) {
+      console.error("Erreur lors de la suppression :", err);
+    }
+  };
+
+  const filteredModels = models.filter((m) =>
+    `${m.prenom} ${m.nationalite}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return <div className="text-center py-8">Chargement...</div>;
+  if (error)
+    return <div className="text-red-500 text-center py-8">{error}</div>;
+
+  return (
+    <div className="container mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold ">Gestion des Modèles</h1>
+        <Link
+          to="/admin/models/create"
+          className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
+          + Nouveau Modèle
+        </Link>
+      </div>
+
+      {/* Barre de recherche */}
+      <div className="bg-gray-100 p-6 rounded-lg shadow mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rechercher
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Prénom, nationalité..."
+              className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => setSearchTerm("")}
+              className="bg-yellow-600 text-white px-6 py-2 rounded-md hover:bg-yellow-700 transition-colors">
+              Réinitialiser
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tableau des modèles */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Modèle
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Âge
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Nationalité
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Photo
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {filteredModels.map((model) => (
+              <tr key={model.id} className="hover:bg-gray-50 transition">
+                <td className="px-6 py-4 text-gray-900 font-medium">
+                  {model.prenom}
+                </td>
+                <td className="px-6 py-4">
+                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
+                    {model.age} ans
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
+                    {model.nationalite}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  {model.photo ? (
+                    <img
+                      src={`${import.meta.env.VITE_IMG_URL}${model.photo}`}
+                      alt={model.prenom}
+                      className="w-16 h-16 rounded-full object-cover border border-gray-300 shadow-sm"
+                    />
+                  ) : (
+                    <span className="text-sm italic text-gray-400">
+                      Aucune photo
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex space-x-3">
+                    <Link
+                      to={`/admin/models/edit/${model.id}`}
+                      className="text-indigo-600 hover:text-indigo-800 font-medium">
+                      Modifier
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(model.id)}
+                      className="text-red-600 hover:text-red-800 font-medium">
+                      Supprimer
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filteredModels.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Aucun modèle trouvé
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminModels;

@@ -1,4 +1,3 @@
-// components/Ui/forms/HomeSettingsForm.tsx
 import React from "react";
 import type { HomeSettings, Slide } from "../../../hooks/useHomeSettings";
 
@@ -11,7 +10,9 @@ interface HomeSettingsFormProps {
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
   onRemoveSlide: (index: number) => void;
   onUpdateHero: (updates: Partial<HomeSettings>) => void;
+  onHandleImageUpload: (index: number, file: File) => void; // Nouvelle prop
   loading?: boolean;
+  compressing?: boolean;
 }
 
 interface SlideWithId extends Slide {
@@ -25,14 +26,16 @@ const HomeSettingsForm: React.FC<HomeSettingsFormProps> = ({
   onUpdateSlide,
   onRemoveSlide,
   onUpdateHero,
+  onHandleImageUpload, // Nouvelle prop
   loading = false,
+  compressing = false,
 }) => {
   const [localSlides, setLocalSlides] = React.useState<SlideWithId[]>([]);
 
   // Convertir les slides avec un id local
   React.useEffect(() => {
     const slides = settings.slides || [];
-    setLocalSlides(slides.map((slide, index) => ({ ...slide, id: index + 1 })));
+    setLocalSlides(slides.map((slide, index) => ({ ...slide, id: index })));
   }, [settings.slides]);
 
   const handleHeroChange = (field: keyof HomeSettings, value: any) => {
@@ -52,15 +55,12 @@ const HomeSettingsForm: React.FC<HomeSettingsFormProps> = ({
   ) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        const index = localSlides.findIndex((slide) => slide.id === id);
-        if (index !== -1) {
-          onUpdateSlide(index, { imageUrl: imageData });
-        }
-      };
-      reader.readAsDataURL(file);
+      const index = localSlides.findIndex((slide) => slide.id === id);
+
+      if (index !== -1) {
+        // Utiliser la nouvelle fonction pour l'upload
+        onHandleImageUpload(index, file);
+      }
     }
   };
 
@@ -87,6 +87,12 @@ const HomeSettingsForm: React.FC<HomeSettingsFormProps> = ({
   return (
     <div>
       <h2 className="text-xl font-bold mb-6 text-[#e1af30]">Section Accueil</h2>
+
+      {compressing && (
+        <div className="mb-4 p-3 bg-blue-600 text-white rounded-lg">
+          Compression des images en cours...
+        </div>
+      )}
 
       {/* Section Hero */}
       <section className="mb-10 bg-pluto-dark-blue p-6 rounded-xl shadow-lg">
@@ -142,6 +148,11 @@ const HomeSettingsForm: React.FC<HomeSettingsFormProps> = ({
         <h2 className="text-md font-semibold mb-6 text-pluto-yellow border-b border-pluto-light-blue pb-2">
           Slides du bandeau
         </h2>
+
+        <div className="mb-4 p-3 bg-pluto-medium-blue rounded-lg text-sm">
+          <strong>ℹ Information:</strong> Les images sont automatiquement
+          compressées.
+        </div>
 
         {(!localSlides || localSlides.length === 0) && (
           <div className="text-center py-8 text-pluto-light-blue">
@@ -235,9 +246,13 @@ const HomeSettingsForm: React.FC<HomeSettingsFormProps> = ({
 
           <button
             onClick={handleSaveAll}
-            disabled={loading}
+            disabled={loading || compressing}
             className="px-6 py-3 bg-[#e1af30] hover:bg-opacity-90 text-white font-semibold rounded-lg transition-all duration-200 shadow-md disabled:opacity-50">
-            {loading ? "Sauvegarde..." : "Sauvegarder tous les paramètres"}
+            {compressing
+              ? "Compression..."
+              : loading
+              ? "Sauvegarde..."
+              : "Sauvegarder tous les paramètres"}
           </button>
         </div>
       </section>

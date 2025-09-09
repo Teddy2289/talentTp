@@ -29,41 +29,101 @@ const glowVariants = {
     transition: {
       duration: 2,
       repeat: Infinity,
-      ease: "easeInOut",
+      ease: [0.42, 0, 0.58, 1], // cubic-bezier for easeInOut
     },
   },
 };
 
-// Données des profils pour le carrousel
-const profileCarousel = [
-  {
-    id: 1,
-    description:
-      "Romantique et attentionnée - Des conversations douces et réconfortantes",
-    image: image1,
-  },
-  {
-    id: 2,
-    description:
-      "Coquine et directe - Des échanges passionnants et pleins de surprises",
-    image: image2,
-  },
-  {
-    id: 3,
-    description:
-      "Amicale et joyeuse - Des discussions légères et pleines de bonne humeur",
-    image: image3,
-  },
-  {
-    id: 4,
-    description:
-      "Intellectuelle et curieuse - Des conversations profondes et stimulantes",
-    image: image4,
-  },
-];
+type Slide = {
+  altText?: string;
+  imageUrl: string;
+};
+
+type HomeData = {
+  main_title?: string;
+  main_subtitle?: string;
+  slides?: Slide[];
+};
 
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [homeData, setHomeData] = useState<HomeData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Récupération des données depuis l'API
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/settings/frontend`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          setHomeData(data.data.home);
+        } else {
+          throw new Error("Réponse API non réussie");
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+          console.error("Erreur lors du chargement des données:", err);
+        } else {
+          setError(String(err));
+          console.error("Erreur lors du chargement des données:", err);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeData();
+  }, []);
+
+  // Données de secours si l'API ne répond pas
+  const fallbackProfileCarousel = [
+    {
+      id: 1,
+      description:
+        "Romantique et attentionnée - Des conversations douces et réconfortantes",
+      image: image1,
+    },
+    {
+      id: 2,
+      description:
+        "Coquine et directe - Des échanges passionnants et pleins de surprises",
+      image: image2,
+    },
+    {
+      id: 3,
+      description:
+        "Amicale et joyeuse - Des discussions légères et pleines de bonne humeur",
+      image: image3,
+    },
+    {
+      id: 4,
+      description:
+        "Intellectuelle et curieuse - Des conversations profondes et stimulantes",
+      image: image4,
+    },
+  ];
+
+  // Utiliser les données de l'API ou les données de secours
+  const profileCarousel =
+    homeData?.slides && homeData.slides.length > 0
+      ? homeData.slides.map((slide, index) => ({
+          id: index + 1,
+          description: slide.altText || `Slide ${index + 1}`,
+          image: slide.imageUrl,
+        }))
+      : fallbackProfileCarousel;
 
   // Auto-rotation du carrousel
   useEffect(() => {
@@ -72,7 +132,7 @@ const Home = () => {
     }, 5000); // Change toutes les 5 secondes
 
     return () => clearInterval(interval);
-  }, []);
+  }, [profileCarousel.length]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % profileCarousel.length);
@@ -83,6 +143,18 @@ const Home = () => {
       (prev) => (prev - 1 + profileCarousel.length) % profileCarousel.length
     );
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0c0c0c] flex items-center justify-center">
+        <div className="text-white text-xl">Chargement...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Erreur de chargement des données:", error);
+  }
 
   return (
     <div
@@ -124,8 +196,10 @@ const Home = () => {
           </motion.p>
 
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 md:mb-8 leading-tight">
-            Fait la connaissance de{" "}
-            <span className="text-[#e1af30]">Nathie Rose</span> .
+            {homeData?.main_title || "Fait la connaissance de"}{" "}
+            <span className="text-[#e1af30]">
+              {homeData?.main_subtitle || "Nathie Rose"}
+            </span>
           </h2>
 
           {/* Boutons d'action */}
@@ -226,6 +300,7 @@ const Home = () => {
           </svg>
         </button>
       </div>
+
       {/* Section Statistiques améliorée */}
       <motion.section
         className="py-16 md:py-20 bg-gradient-to-b from-transparent to-[#0a0a0a]"
@@ -264,15 +339,17 @@ const Home = () => {
           </motion.div>
         </div>
       </motion.section>
+
       <section className="py-20 bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center">
           À propos<span className="text-[#e1af30]"> de moi</span>
         </h1>
         <ProfilesPage />
       </section>
-      <Galerie />
-      {/* Section À propos */}
 
+      <Galerie />
+
+      {/* Section Contact */}
       <section
         className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a]"
         id="contact">

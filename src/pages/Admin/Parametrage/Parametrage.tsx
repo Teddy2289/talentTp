@@ -1,4 +1,3 @@
-// Parametrage.tsx
 import React, { useState } from "react";
 import GeneralSettings from "./ComponenteParametrage/GeneralSettings";
 import SiteLogo from "./ComponenteParametrage/SiteLogo";

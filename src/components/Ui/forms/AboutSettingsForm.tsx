@@ -10,7 +10,8 @@ interface AboutSettingsFormProps {
     settings: AboutSettings
   ) => Promise<{ success: boolean; error?: string }>;
   onUpdateModel: (
-    model: Model
+    model: Model,
+    imageFile?: File
   ) => Promise<{ success: boolean; error?: string }>;
   loading?: boolean;
 }
@@ -28,10 +29,14 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
   const [editingModel, setEditingModel] = React.useState<Model | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
   const [modelLoading, setModelLoading] = React.useState(false);
+  const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setLocalSettings(settings);
     setEditingModel(selectedModel);
+    setImagePreview(null);
+    setSelectedImage(null);
   }, [settings, selectedModel]);
 
   const handleChange = (field: keyof AboutSettings, value: any) => {
@@ -50,6 +55,15 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
+  };
+
   const handleSave = async () => {
     const result = await onSave(localSettings);
     if (result.success) {
@@ -64,10 +78,15 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
 
     setModelLoading(true);
     try {
-      const result = await onUpdateModel(editingModel);
+      const result = await onUpdateModel(
+        editingModel,
+        selectedImage || undefined
+      );
       if (result.success) {
         alert("Modèle mis à jour avec succès!");
         setIsEditing(false);
+        setSelectedImage(null);
+        setImagePreview(null);
       } else {
         alert(`Erreur: ${result.error}`);
       }
@@ -81,35 +100,42 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
   const handleCancelEdit = () => {
     setEditingModel(selectedModel);
     setIsEditing(false);
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
   };
 
   return (
     <div className="p-6 bg-pluto-deep-blue text-white min-h-screen">
-      <h1 className="text-xl font-bold mb-8 text-[#e1af30]">
+      <h1 className="text-2xl font-bold mb-8 text-[#e1af30]">
         Paramètres À Propos
       </h1>
 
-      <div className="bg-pluto-dark-blue p-6 rounded-xl shadow-lg">
-        <h2 className="text-md font-semibold mb-6 text-pluto-yellow border-b border-pluto-light-blue pb-2">
+      {/* Section Paramètres */}
+      <div className="bg-pluto-dark-blue p-6 rounded-xl shadow-lg mb-6">
+        <h2 className="text-lg font-semibold mb-6 text-pluto-yellow border-b border-pluto-light-blue pb-3">
           Configuration de la section
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="form-group">
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
               Titre de la section *
             </label>
             <input
               type="text"
-              value={localSettings.about_title}
+              value={localSettings.about_title || ""}
               onChange={(e) => handleChange("about_title", e.target.value)}
-              className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange"
+              className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
               Modèle à afficher
             </label>
             <select
@@ -120,7 +146,7 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
                   e.target.value ? parseInt(e.target.value) : null
                 )
               }
-              className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange">
+              className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white">
               <option value="">Sélectionner un modèle</option>
               {Array.isArray(models) &&
                 models.map((model) => (
@@ -133,49 +159,62 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
         </div>
 
         <div className="mb-6">
-          <label className="flex items-center space-x-3">
+          <label className="flex items-center space-x-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={localSettings.show_custom_content}
+              checked={localSettings.show_custom_content || false}
               onChange={(e) =>
                 handleChange("show_custom_content", e.target.checked)
               }
-              className="h-5 w-5 rounded bg-pluto-medium-blue border-pluto-light-blue text-pluto-orange focus:ring-pluto-orange"
+              className="h-5 w-5 rounded bg-pluto-medium-blue border-pluto-light-blue text-pluto-orange focus:ring-pluto-orange cursor-pointer"
             />
-            <span>Afficher le contenu personnalisé</span>
+            <span className="text-pluto-light-blue">
+              Afficher le contenu personnalisé
+            </span>
           </label>
         </div>
 
         {localSettings.show_custom_content && (
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
               Contenu personnalisé
             </label>
             <textarea
               value={localSettings.custom_content || ""}
               onChange={(e) => handleChange("custom_content", e.target.value)}
               rows={6}
-              className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange"
+              className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white"
               placeholder="Contenu HTML personnalisé pour la section À propos"
             />
           </div>
         )}
 
-        {/* Section d'édition du modèle sélectionné */}
-        {editingModel && (
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-pluto-yellow">
-                Édition du modèle sélectionné
-              </h3>
-              {isEditing ? (
+        <div className="flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="px-6 py-3 bg-[#e1af30] hover:bg-[#d4a42c] text-white font-semibold rounded-lg transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading ? "Sauvegarde..." : "Sauvegarder les paramètres"}
+          </button>
+        </div>
+      </div>
+
+      {/* Section Édition du Modèle */}
+      {editingModel && (
+        <div className="bg-pluto-dark-blue p-6 rounded-xl shadow-lg mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-pluto-yellow">
+              Édition du modèle sélectionné
+            </h2>
+            <div className="flex gap-3">
+              {!isEditing ? (
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-pluto-orange hover:bg-opacity-90 text-white font-semibold rounded-lg transition-all duration-200">
+                  onClick={handleStartEdit}
+                  className="px-4 py-2 bg-pluto-orange hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200">
                   Modifier le modèle
                 </button>
               ) : (
-                <div className="flex gap-2">
+                <>
                   <button
                     onClick={handleSaveModel}
                     disabled={modelLoading}
@@ -187,217 +226,212 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
                     className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all duration-200">
                     Annuler
                   </button>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="block text-sm font-medium mb-2">
-                  Prénom *
-                </label>
-                <input
-                  type="text"
-                  value={editingModel.prenom}
-                  onChange={(e) => handleModelChange("prenom", e.target.value)}
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="block text-sm font-medium mb-2">Âge</label>
-                <input
-                  type="number"
-                  value={editingModel.age}
-                  onChange={(e) =>
-                    handleModelChange("age", parseInt(e.target.value) || 0)
-                  }
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="block text-sm font-medium mb-2">
-                  Nationalité
-                </label>
-                <input
-                  type="text"
-                  value={editingModel.nationalite}
-                  onChange={(e) =>
-                    handleModelChange("nationalite", e.target.value)
-                  }
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="block text-sm font-medium mb-2">
-                  Profession
-                </label>
-                <input
-                  type="text"
-                  value={editingModel.profession}
-                  onChange={(e) =>
-                    handleModelChange("profession", e.target.value)
-                  }
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group md:col-span-2">
-                <label className="block text-sm font-medium mb-2">
-                  Passe-temps
-                </label>
-                <input
-                  type="text"
-                  value={editingModel.passe_temps}
-                  onChange={(e) =>
-                    handleModelChange("passe_temps", e.target.value)
-                  }
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group md:col-span-2">
-                <label className="block text-sm font-medium mb-2">
-                  Citation
-                </label>
-                <textarea
-                  value={editingModel.citation}
-                  onChange={(e) =>
-                    handleModelChange("citation", e.target.value)
-                  }
-                  disabled={isEditing}
-                  rows={2}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="block text-sm font-medium mb-2">
-                  Domicile
-                </label>
-                <input
-                  type="text"
-                  value={editingModel.domicile}
-                  onChange={(e) =>
-                    handleModelChange("domicile", e.target.value)
-                  }
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="block text-sm font-medium mb-2">
-                  Localisation
-                </label>
-                <input
-                  type="text"
-                  value={editingModel.localisation}
-                  onChange={(e) =>
-                    handleModelChange("localisation", e.target.value)
-                  }
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="form-group md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Photo</label>
-                <input
-                  type="file"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const previewUrl = URL.createObjectURL(file);
-                      handleModelChange("photo", previewUrl);
-                    }
-                  }}
-                  disabled={isEditing}
-                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange disabled:opacity-70 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              {editingModel.photo && (
-                <div className="form-group md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">
-                    Aperçu de la photo
-                  </label>
-                  <div className="mt-2">
-                    <img
-                      src={`${import.meta.env.VITE_IMG_URL}${
-                        editingModel.photo
-                      }`}
-                      alt={editingModel.prenom}
-                      className="w-32 h-32 object-cover rounded-lg border-2 border-pluto-light-blue"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </div>
-                </div>
+                </>
               )}
             </div>
           </div>
-        )}
 
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="px-6 py-3 bg-[#e1af30] hover:bg-opacity-90 text-white font-semibold rounded-lg transition-all duration-200 shadow-md disabled:opacity-50">
-            {loading ? "Sauvegarde..." : "Sauvegarder les paramètres"}
-          </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="form-group">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Prénom *
+              </label>
+              <input
+                type="text"
+                value={editingModel.prenom || ""}
+                onChange={(e) => handleModelChange("prenom", e.target.value)}
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Âge
+              </label>
+              <input
+                type="number"
+                value={editingModel.age || ""}
+                onChange={(e) =>
+                  handleModelChange("age", parseInt(e.target.value) || 0)
+                }
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Nationalité
+              </label>
+              <input
+                type="text"
+                value={editingModel.nationalite || ""}
+                onChange={(e) =>
+                  handleModelChange("nationalite", e.target.value)
+                }
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Profession
+              </label>
+              <input
+                type="text"
+                value={editingModel.profession || ""}
+                onChange={(e) =>
+                  handleModelChange("profession", e.target.value)
+                }
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group md:col-span-2">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Passe-temps
+              </label>
+              <input
+                type="text"
+                value={editingModel.passe_temps || ""}
+                onChange={(e) =>
+                  handleModelChange("passe_temps", e.target.value)
+                }
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group md:col-span-2">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Citation
+              </label>
+              <textarea
+                value={editingModel.citation || ""}
+                onChange={(e) => handleModelChange("citation", e.target.value)}
+                disabled={!isEditing}
+                rows={2}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Domicile
+              </label>
+              <input
+                type="text"
+                value={editingModel.domicile || ""}
+                onChange={(e) => handleModelChange("domicile", e.target.value)}
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                Localisation
+              </label>
+              <input
+                type="text"
+                value={editingModel.localisation || ""}
+                onChange={(e) =>
+                  handleModelChange("localisation", e.target.value)
+                }
+                disabled={!isEditing}
+                className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            {isEditing && (
+              <div className="form-group md:col-span-2">
+                <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                  Nouvelle photo
+                </label>
+                <input
+                  type="file"
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pluto-orange file:text-white hover:file:bg-orange-600"
+                />
+              </div>
+            )}
+
+            {(editingModel.photo || imagePreview) && (
+              <div className="form-group md:col-span-2">
+                <label className="block text-sm font-medium mb-2 text-pluto-light-blue">
+                  {isEditing ? "Aperçu de la photo" : "Photo actuelle"}
+                </label>
+                <div className="mt-2">
+                  <img
+                    src={
+                      imagePreview ||
+                      `${import.meta.env.VITE_IMG_URL}${editingModel.photo}`
+                    }
+                    alt={editingModel.prenom}
+                    className="w-32 h-32 object-cover rounded-lg border-2 border-pluto-light-blue"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Aperçu */}
-      <div className="bg-pluto-dark-blue p-6 rounded-xl shadow-lg mt-8">
-        <h2 className="text-xl font-semibold mb-4 text-pluto-yellow border-b border-pluto-light-blue pb-2">
+      {/* Section Aperçu */}
+      <div className="bg-pluto-dark-blue p-6 rounded-xl shadow-lg">
+        <h2 className="text-lg font-semibold mb-4 text-pluto-yellow border-b border-pluto-light-blue pb-3">
           Aperçu
         </h2>
 
-        <div className="bg-pluto-medium-blue p-4 rounded-lg">
+        <div className="bg-pluto-medium-blue p-6 rounded-lg">
           <h3 className="text-xl font-bold text-pluto-orange mb-4">
-            {localSettings.about_title}
+            {localSettings.about_title || "Titre de la section"}
           </h3>
 
-          {editingModel && (
+          {editingModel ? (
             <div className="mb-4">
-              <h4 className="font-semibold text-pluto-yellow mb-2">
+              <h4 className="font-semibold text-pluto-yellow mb-3">
                 Modèle sélectionné:
               </h4>
-              <div className="bg-pluto-dark-blue p-3 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-white font-semibold">
-                      Prénom: {editingModel.prenom}
+              <div className="bg-pluto-dark-blue p-4 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-white">
+                      <span className="font-semibold">Prénom:</span>{" "}
+                      {editingModel.prenom}
                     </p>
                     <p className="text-pluto-light-blue">
-                      Âge: {editingModel.age} ans
+                      <span className="font-semibold">Âge:</span>{" "}
+                      {editingModel.age} ans
                     </p>
                     <p className="text-white">
-                      Nationalité: {editingModel.nationalite}
+                      <span className="font-semibold">Nationalité:</span>{" "}
+                      {editingModel.nationalite}
                     </p>
                     <p className="text-pluto-light-blue">
-                      Profession: {editingModel.profession}
+                      <span className="font-semibold">Profession:</span>{" "}
+                      {editingModel.profession}
                     </p>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <p className="text-white">
-                      Localisation: {editingModel.localisation}
+                      <span className="font-semibold">Localisation:</span>{" "}
+                      {editingModel.localisation}
                     </p>
                     <p className="text-pluto-light-blue">
-                      Domicile: {editingModel.domicile}
+                      <span className="font-semibold">Domicile:</span>{" "}
+                      {editingModel.domicile}
                     </p>
                     <p className="text-white">
-                      Passe-temps: {editingModel.passe_temps}
+                      <span className="font-semibold">Passe-temps:</span>{" "}
+                      {editingModel.passe_temps}
                     </p>
                     <p className="text-pluto-light-blue italic">
                       "{editingModel.citation}"
@@ -421,6 +455,10 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
                 )}
               </div>
             </div>
+          ) : (
+            <p className="text-pluto-light-blue italic mb-4">
+              Aucun modèle sélectionné
+            </p>
           )}
 
           {localSettings.show_custom_content &&
@@ -430,19 +468,13 @@ const AboutSettingsForm: React.FC<AboutSettingsFormProps> = ({
                   Contenu personnalisé:
                 </h4>
                 <div
-                  className="prose prose-invert max-w-none"
+                  className="prose prose-invert max-w-none p-4 bg-pluto-dark-blue rounded-lg"
                   dangerouslySetInnerHTML={{
                     __html: localSettings.custom_content,
                   }}
                 />
               </div>
             )}
-
-          {!editingModel && !localSettings.custom_content && (
-            <p className="text-pluto-light-blue italic">
-              Aucun contenu configuré pour l'instant
-            </p>
-          )}
         </div>
       </div>
     </div>

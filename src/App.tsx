@@ -27,6 +27,9 @@ import UserCreate from "./pages/Admin/Users/UserCreate";
 import UserEdit from "./pages/Admin/Users/UserEdit";
 import { AlertProvider } from "./contexts/AlertContext";
 import Parametrage from "./pages/Admin/Parametrage/Parametrage";
+import Model from "./pages/Admin/Model/Model";
+import ModelFormViewWrapper from "./pages/Admin/Model/ModelFormViewWrapper";
+import ModelFormView from "./components/Ui/forms/ModelFormView";
 
 const App: React.FC = () => {
   return (
@@ -100,7 +103,16 @@ const App: React.FC = () => {
                         <Route path="users" element={<AdminUsers />} />
                         <Route path="users/create" element={<UserCreate />} />
                         <Route path="users/edit/:id" element={<UserEdit />} />
-
+                        {/* Model */}
+                        <Route path="models" element={<Model />} />
+                        <Route
+                          path="models/create"
+                          element={<ModelFormView />}
+                        />
+                        <Route
+                          path="models/edit/:id"
+                          element={<ModelFormViewWrapper />}
+                        />
                         {/* Routes de gestion des photos */}
                         <Route path="photo" element={<PhotoPage />} />
                         <Route path="photo/create" element={<CreatePhoto />} />

@@ -81,12 +81,10 @@ const UserEdit: React.FC = () => {
       <div className="flex items-center mb-8">
         <button
           onClick={() => navigate("/admin/users")}
-          className="mr-4 text-gray-600 hover:text-gray-900">
+          className="mr-4 hover:text-yellow-200">
           ← Retour
         </button>
-        <h1 className="text-3xl font-bold text-gray-800">
-          Modifier l'utilisateur
-        </h1>
+        <h1 className="text-3xl font-bold ">Modifier l'utilisateur</h1>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -107,7 +105,7 @@ const UserEdit: React.FC = () => {
                 name="first_name"
                 value={formData.first_name || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
 
@@ -120,7 +118,7 @@ const UserEdit: React.FC = () => {
                 name="last_name"
                 value={formData.last_name || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
           </div>
@@ -134,7 +132,7 @@ const UserEdit: React.FC = () => {
               name="email"
               value={formData.email || ""}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </div>
 
@@ -147,7 +145,7 @@ const UserEdit: React.FC = () => {
               name="password"
               value={formData.password || ""}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </div>
 
@@ -160,7 +158,7 @@ const UserEdit: React.FC = () => {
                 name="type"
                 value={formData.type || UserType.USER}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
                 <option value={UserType.USER}>Utilisateur</option>
                 <option value={UserType.ADMIN}>Administrateur</option>
                 <option value={UserType.AGENT}>Agent</option>
@@ -174,7 +172,7 @@ const UserEdit: React.FC = () => {
                 id="is_verified"
                 checked={formData.is_verified || false}
                 onChange={handleChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
               />
               <label
                 htmlFor="is_verified"
@@ -194,7 +192,7 @@ const UserEdit: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+              className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50">
               {loading ? "Modification..." : "Modifier l'utilisateur"}
             </button>
           </div>

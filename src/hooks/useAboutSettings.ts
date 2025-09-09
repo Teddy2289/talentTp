@@ -81,16 +81,54 @@ export const useAboutSettings = () => {
     loadData();
   }, []);
 
-  const updateModel = async (model: Model) => {
+  // Dans useAboutSettings.ts
+  const uploadModelImage = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/upload/model", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Échec de l'upload");
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error("Erreur upload:", error);
+      throw new Error("Échec de l'upload de l'image");
+    }
+  };
+
+  // Modifiez la fonction updateModel
+  const updateModel = async (model: Model, imageFile?: File) => {
     try {
       setLoading(true);
-      const response = await modelService.updateModel(model.id, model);
-      // Mettre à jour le modèle dans la liste
-      setModels((prev) => prev.map((m) => (m.id === model.id ? model : m)));
-      // Mettre à jour le modèle sélectionné si c'est le même
-      if (selectedModel?.id === model.id) {
-        setSelectedModel(model);
+
+      let modelData = { ...model };
+
+      // Si une nouvelle image est fournie, l'uploader
+      if (imageFile) {
+        const imageUrl = await uploadModelImage(imageFile);
+        modelData = { ...modelData, photo: imageUrl };
       }
+
+      const response = await modelService.updateModel(modelData.id, modelData);
+
+      // Mettre à jour le modèle dans la liste
+      setModels((prev) =>
+        prev.map((m) => (m.id === modelData.id ? modelData : m))
+      );
+
+      // Mettre à jour le modèle sélectionné si c'est le même
+      if (selectedModel?.id === modelData.id) {
+        setSelectedModel(modelData);
+      }
+
       return { success: true, data: response };
     } catch (err) {
       const errorMessage =

@@ -13,6 +13,7 @@ const Accueil: React.FC = () => {
     updateSlide,
     removeSlide,
     updateHero,
+    handleImageUpload,
   } = useHomeSettings();
 
   if (loading && !settings) {
@@ -46,6 +47,7 @@ const Accueil: React.FC = () => {
         main_title: settings.main_title ?? "",
       }}
       onSave={saveSettings}
+      onHandleImageUpload={handleImageUpload}
       onAddSlide={addSlide}
       onUpdateSlide={updateSlide}
       onRemoveSlide={removeSlide}

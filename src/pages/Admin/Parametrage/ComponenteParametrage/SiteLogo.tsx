@@ -1,4 +1,3 @@
-// componentParametrage/SiteLogo.tsx
 import React, { useState, useEffect } from "react";
 import { useLogoSettings } from "../../../../hooks/useLogoSettings";
 
@@ -38,9 +37,6 @@ const SiteLogo: React.FC = () => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setFileName(file.name);
-
-      // Ici tu pourrais gérer l’upload vers ton backend,
-      // pour l’instant on simule avec une URL locale
       setFormData((prev) => ({
         ...prev,
         logoImage: URL.createObjectURL(file),

@@ -1,4 +1,3 @@
-// services/api/settingsApi.ts
 import axios from "axios";
 
 const API_BASE_URL =
@@ -33,8 +32,8 @@ export const settingsApi = {
       }
 
       return {
-        data: sectionData.settings, // ⚡ renvoie uniquement les settings (about_title, etc.)
-        metadata: sectionData, // ⚡ si besoin de l’ID ou is_active
+        data: sectionData.settings,
+        metadata: sectionData,
       };
     }),
 
@@ -44,7 +43,6 @@ export const settingsApi = {
   updateGallerySettings: (data: any) => api.put("/settings/gallery", data),
   updateAboutSettings: (data: any) => api.put("/settings/about", data),
   updateHomeSettings: (data: any) => {
-    // Transformer les données pour correspondre au format attendu par le backend
     const homeData = {
       main_title: data.main_title,
       main_subtitle: data.main_subtitle,
