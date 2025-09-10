@@ -90,7 +90,7 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {/* Barre de recherche et filtres */}
-      <div className="bg-gray-100 p-6 rounded-lg shadow-md mb-8">
+      <div className="bg-gray-100 p-6 rounded-lg shadow-md mb-8 text-black">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

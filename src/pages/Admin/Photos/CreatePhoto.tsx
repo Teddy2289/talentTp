@@ -125,7 +125,7 @@ export default function CreatePhoto() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 text-black">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 {error}

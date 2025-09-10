@@ -83,11 +83,9 @@ const App: React.FC = () => {
               <Route
                 path="/apropos"
                 element={
-                  <ProtectedRoute requireAuth={false}>
-                    <FrontLayout>
-                      <Apropos />
-                    </FrontLayout>
-                  </ProtectedRoute>
+                  <FrontLayout>
+                    <Apropos />
+                  </FrontLayout>
                 }
               />
 

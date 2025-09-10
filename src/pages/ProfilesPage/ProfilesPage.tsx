@@ -1,8 +1,51 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import image3 from "../../assets/image2.jpg";
+import {
+  Heart,
+  MapPin,
+  Calendar,
+  Globe,
+  Palette,
+  Home,
+  User,
+  Cake,
+  Camera,
+  Plane,
+  ChefHat,
+  MessageCircle,
+  AlertCircle,
+  Loader2,
+  Clock,
+  MessagesSquare,
+} from "lucide-react";
 
 function ProfilesPage() {
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("info");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/settings/frontend"
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        setProfileData(result.data);
+      } catch (e) {
+        console.error("Failed to fetch data:", e);
+        setError("Impossible de charger les données du profil.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -28,277 +71,376 @@ function ProfilesPage() {
     },
   };
 
-  const imageVariants = {
-    hidden: { scale: 0.9, opacity: 0 },
-    visible: {
-      scale: 1,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        damping: 15,
-        stiffness: 100,
-        delay: 0.2,
-      },
-    },
-    hover: {
-      scale: 1.03,
-      transition: {
-        type: "spring",
-        damping: 15,
-        stiffness: 100,
-      },
+  const floatingAnimation = {
+    y: [0, -10, 0],
+    transition: {
+      duration: 4,
+      repeat: Infinity,
+      ease: "easeInOut",
     },
   };
 
-  return (
-    <div
-      id="profiles"
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#0f0f0f] py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        className="max-w-5xl mx-auto bg-[#1a1a1a] rounded-2xl shadow-2xl overflow-hidden border border-[#2a2a2a]"
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}>
-        <div className="md:flex">
-          {/* Section image - Prend toute la largeur du conteneur */}
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#131313] to-[#0a0a0a] text-white">
+        <div className="text-center">
           <motion.div
-            className="md:w-2/5 relative overflow-hidden"
-            variants={imageVariants}
-            whileHover="hover">
-            <img
-              className="w-full h-80 md:h-full object-cover"
-              src={image3}
-              alt="Nathie"
-            />
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 border-4 border-[#e1af30] border-t-transparent rounded-full mx-auto mb-4">
+            <Loader2 className="h-8 w-8 mx-auto mt-3 text-[#e1af30]" />
+          </motion.div>
+          <p className="text-xl">Chargement de votre profil...</p>
+        </div>
+      </div>
+    );
+  }
 
-            {/* Overlay avec effet de cœur */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end justify-center pb-8">
-              <motion.div
-                className="text-center"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}>
-                <h2 className="text-3xl font-semibold text-white mb-2">
-                  Nathie
-                </h2>
-                {/* <p className="text-[#e1af30]">Créatrice de contenu inspirant</p> */}
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a0a] via-[#131313] to-[#0a0a0a] text-red-400">
+        <div className="text-center p-8 bg-[#1a1a1a]/80 backdrop-blur-lg rounded-2xl border border-red-800/30">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4" />
+          <p className="text-xl mb-2">Oups !</p>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
-                {/* Icône cœur animée */}
+  const { model, about_title, custom_content } = profileData.about;
+  const imageUrl = `http://localhost:3000${model.photo}`;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#131313] to-[#0a0a0a] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#e1af30]/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#e1af30]/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-[#e1af30]/20 rounded-full blur-xl animate-pulse"></div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="max-w-6xl mx-auto relative z-10">
+        {/* Header with name and title */}
+        <motion.div
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}>
+          <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#e1af30] to-[#f5d67b] mb-4">
+            {model.prenom}
+          </h1>
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            Découvrez mon univers et connectons-nous pour une expérience unique
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Card - Left Side */}
+          <motion.div
+            className="lg:col-span-1"
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}>
+            <div className="bg-[#1a1a1a]/70 backdrop-blur-xl rounded-3xl overflow-hidden border border-[#2a2a2a]/50 shadow-2xl h-full">
+              <div className="relative">
                 <motion.div
-                  className="mt-4"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-8 w-8 mx-auto text-[#e1af30]"
-                    viewBox="0 0 20 20"
-                    fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  className="h-80 overflow-hidden relative"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}>
+                  <img
+                    className="w-full h-full object-cover"
+                    src={imageUrl}
+                    alt={model.prenom}
+                  />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+
+                  {/* Floating elements */}
+                  <motion.div
+                    className="absolute top-6 right-6 w-14 h-14 rounded-full bg-[#e1af30]/10 backdrop-blur-md border border-[#e1af30]/30 flex items-center justify-center"
+                    animate={floatingAnimation}>
+                    <Heart className="h-6 w-6 text-[#e1af30]" fill="#e1af30" />
+                  </motion.div>
                 </motion.div>
-              </motion.div>
+
+                <div className="absolute bottom-6 left-6 right-6">
+                  <h2 className="text-3xl font-bold text-white mb-2">
+                    {model.prenom}
+                  </h2>
+                  <div className="flex items-center">
+                    <MapPin className="h-5 w-5 text-[#e1af30] mr-2" />
+                    <span className="text-gray-300">{model.localisation}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <motion.div
+                  className="bg-gradient-to-r from-[#e1af30]/10 to-[#e1af30]/5 p-4 rounded-xl border border-[#e1af30]/20 mb-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}>
+                  <p className="text-[#e1af30] text-center italic">
+                    "{model.citation}"
+                  </p>
+                </motion.div>
+              </div>
             </div>
           </motion.div>
 
-          {/* Section informations */}
-          <div className="md:w-3/5 p-8 md:p-10">
-            <motion.div
-              className="space-y-5 text-gray-300"
-              variants={containerVariants}>
-              <motion.div
-                className="flex items-start group"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}>
-                <div className="flex-shrink-0 mr-4 mt-1">
-                  <div className="w-8 h-8 rounded-full bg-[#0f0f0f] flex items-center justify-center border border-[#2a2a2a] group-hover:border-[#e1af30] transition-colors">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-[#e1af30]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <strong className="text-[#e1af30]">Prénom :</strong> Nathie
-                </div>
-              </motion.div>
+          {/* Content - Right Side */}
+          <motion.div
+            className="lg:col-span-2"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}>
+            <div className="bg-[#1a1a1a]/70 backdrop-blur-xl rounded-3xl overflow-hidden border border-[#2a2a2a]/50 shadow-2xl h-full p-6">
+              {/* Tab Navigation */}
+              <div className="flex space-x-2 mb-8 border-b border-[#2a2a2a] pb-4">
+                <button
+                  onClick={() => setActiveTab("info")}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    activeTab === "info"
+                      ? "bg-[#e1af30] text-gray-900"
+                      : "text-gray-400 hover:text-white"
+                  }`}>
+                  Informations
+                </button>
+                <button
+                  onClick={() => setActiveTab("about")}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    activeTab === "about"
+                      ? "bg-[#e1af30] text-gray-900"
+                      : "text-gray-400 hover:text-white"
+                  }`}>
+                  À propos
+                </button>
+                <button
+                  onClick={() => setActiveTab("preferences")}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    activeTab === "preferences"
+                      ? "bg-[#e1af30] text-gray-900"
+                      : "text-gray-400 hover:text-white"
+                  }`}>
+                  Préférences
+                </button>
+              </div>
 
-              <motion.div
-                className="flex items-start group"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}>
-                <div className="flex-shrink-0 mr-4 mt-1">
-                  <div className="w-8 h-8 rounded-full bg-[#0f0f0f] flex items-center justify-center border border-[#2a2a2a] group-hover:border-[#e1af30] transition-colors">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-[#e1af30]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <strong className="text-[#e1af30]">Nationalité :</strong>{" "}
-                  malgache, vit en France
-                </div>
-              </motion.div>
+              {/* Tab Content */}
+              {activeTab === "info" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    {
+                      icon: <User className="h-6 w-6" />,
+                      label: "Prénom",
+                      value: model.prenom,
+                    },
+                    {
+                      icon: <Cake className="h-6 w-6" />,
+                      label: "Âge",
+                      value: `${model.age} ans`,
+                    },
+                    {
+                      icon: <Globe className="h-6 w-6" />,
+                      label: "Nationalité",
+                      value: model.nationalite,
+                    },
+                    {
+                      icon: <Palette className="h-6 w-6" />,
+                      label: "Passe-temps",
+                      value: model.passe_temps,
+                    },
+                    {
+                      icon: <MapPin className="h-6 w-6" />,
+                      label: "Localisation",
+                      value: model.localisation,
+                    },
+                    {
+                      icon: <Home className="h-6 w-6" />,
+                      label: "Domicile",
+                      value: model.domicile,
+                    },
+                  ].map((item, index) => (
+                    <motion.div
+                      key={index}
+                      className="bg-[#0f0f0f]/50 p-4 rounded-xl border border-[#2a2a2a] group hover:border-[#e1af30]/30 transition-all"
+                      variants={itemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      whileHover={{
+                        y: -5,
+                        transition: { type: "spring", stiffness: 300 },
+                      }}>
+                      <div className="flex items-center">
+                        <div className="p-2 bg-[#e1af30]/10 rounded-lg mr-3 text-[#e1af30]">
+                          {item.icon}
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-400">
+                            {item.label}
+                          </div>
+                          <div className="text-white font-medium">
+                            {item.value}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
 
-              <motion.div
-                className="flex items-start group"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}>
-                <div className="flex-shrink-0 mr-4 mt-1">
-                  <div className="w-8 h-8 rounded-full bg-[#0f0f0f] flex items-center justify-center border border-[#2a2a2a] group-hover:border-[#e1af30] transition-colors">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-[#e1af30]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <strong className="text-[#e1af30]">Âge :</strong> 22 ans
-                </div>
-              </motion.div>
+              {activeTab === "about" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}>
+                  <h3 className="text-2xl font-bold text-[#e1af30] mb-4">
+                    Qui suis-je ?
+                  </h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    Passionnée par la création de connexions authentiques,
+                    j'aime partager des moments uniques et des conversations
+                    enrichissantes. Mon approche est basée sur l'écoute,
+                    l'empathie et le respect mutuel.
+                  </p>
 
-              <motion.div
-                className="flex items-start group"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}>
-                <div className="flex-shrink-0 mr-4 mt-1">
-                  <div className="w-8 h-8 rounded-full bg-[#0f0f0f] flex items-center justify-center border border-[#2a2a2a] group-hover:border-[#e1af30] transition-colors">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-[#e1af30]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <strong className="text-[#e1af30]">Passe-temps :</strong> se
-                  promener seule en ville avec ses écouteurs, boire du thé en
-                  silence, faire du yoga doux
-                </div>
-              </motion.div>
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-[#0f0f0f]/50 p-4 rounded-xl border border-[#2a2a2a]">
+                      <h4 className="text-[#e1af30] font-semibold mb-2 flex items-center">
+                        <Heart className="h-5 w-5 mr-2" />
+                        Mes passions
+                      </h4>
+                      <ul className="text-gray-300 space-y-2">
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-[#e1af30] rounded-full mr-2"></span>
+                          <div className="flex items-center">
+                            <Camera className="h-4 w-4 mr-2" />
+                            Photographie artistique
+                          </div>
+                        </li>
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-[#e1af30] rounded-full mr-2"></span>
+                          <div className="flex items-center">
+                            <Plane className="h-4 w-4 mr-2" />
+                            Voyages et découvertes
+                          </div>
+                        </li>
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-[#e1af30] rounded-full mr-2"></span>
+                          <div className="flex items-center">
+                            <ChefHat className="h-4 w-4 mr-2" />
+                            Cuisine du monde
+                          </div>
+                        </li>
+                      </ul>
+                    </div>
 
-              <motion.div
-                className="flex items-start group"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}>
-                <div className="flex-shrink-0 mr-4 mt-1">
-                  <div className="w-8 h-8 rounded-full bg-[#0f0f0f] flex items-center justify-center border border-[#2a2a2a] group-hover:border-[#e1af30] transition-colors">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-[#e1af30]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
+                    <div className="bg-[#0f0f0f]/50 p-4 rounded-xl border border-[#2a2a2a]">
+                      <h4 className="text-[#e1af30] font-semibold mb-2 flex items-center">
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        Ce que je recherche
+                      </h4>
+                      <ul className="text-gray-300 space-y-2">
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-[#e1af30] rounded-full mr-2"></span>
+                          Conversations profondes
+                        </li>
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-[#e1af30] rounded-full mr-2"></span>
+                          Respect et authenticité
+                        </li>
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-[#e1af30] rounded-full mr-2"></span>
+                          Moments complices
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <strong className="text-[#e1af30]">Localisation :</strong>{" "}
-                  Lyon
-                </div>
-              </motion.div>
+                </motion.div>
+              )}
 
-              <motion.div
-                className="flex items-start group"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}>
-                <div className="flex-shrink-0 mr-4 mt-1">
-                  <div className="w-8 h-8 rounded-full bg-[#0f0f0f] flex items-center justify-center border border-[#2a2a2a] group-hover:border-[#e1af30] transition-colors">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-[#e1af30]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                      />
-                    </svg>
+              {activeTab === "preferences" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}>
+                  <h3 className="text-2xl font-bold text-[#e1af30] mb-4">
+                    Mes préférences
+                  </h3>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                        <MessagesSquare className="h-5 w-5 mr-2" />
+                        Types de conversation
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          "Discussion légère",
+                          "Échanges intellectuels",
+                          "Partage d'expériences",
+                          "Soutien émotionnel",
+                        ].map((type, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-[#0f0f0f] border border-[#2a2a2a] rounded-full text-sm text-gray-300">
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                        <Clock className="h-5 w-5 mr-2" />
+                        Disponibilités
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(
+                          (day, idx) => (
+                            <div
+                              key={idx}
+                              className={`p-2 rounded-lg text-center ${
+                                idx % 2 === 0
+                                  ? "bg-[#e1af30]/10 border border-[#e1af30]/20"
+                                  : "bg-[#0f0f0f] border border-[#2a2a2a]"
+                              }`}>
+                              <div className="font-medium text-white">
+                                {day}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                19h-23h
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <strong className="text-[#e1af30]">Profession :</strong>{" "}
-                  Créatrice de contenu inspirant
-                </div>
-              </motion.div>
-            </motion.div>
-
-            {/* Citation avec animation */}
-            <motion.div
-              className="mt-10 pt-8 border-t border-[#333]"
-              variants={itemVariants}>
-              <motion.p
-                className="text-[#e1af30] text-center italic text-lg"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}>
-                "Chaque jour est une nouvelle page à écrire avec passion et
-                inspiration"
-              </motion.p>
-            </motion.div>
-          </div>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
         </div>
+
+        {/* Floating action button */}
+        <motion.div
+          className="fixed bottom-6 right-6 z-20"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}>
+          <button className="w-14 h-14 rounded-full bg-gradient-to-r from-[#e1af30] to-[#f3c754] shadow-lg flex items-center justify-center text-gray-900">
+            <MessageCircle className="h-6 w-6" />
+          </button>
+        </motion.div>
       </motion.div>
     </div>
   );

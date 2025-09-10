@@ -4,13 +4,59 @@ import coeur from "../../assets/coeur.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
+interface ApiData {
+  success: boolean;
+  data: {
+    general: {
+      site_title: string;
+      site_subtitle: string;
+      show_navbar: boolean;
+      social_title: string;
+      social_links: any[];
+      model: {
+        id: number;
+        prenom: string;
+        age: number;
+        nationalite: string;
+        passe_temps: string;
+        citation: string;
+        domicile: string;
+        photo: string;
+        localisation: string;
+        created_at: string;
+        updated_at: string;
+      };
+    };
+  };
+}
+
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [siteData, setSiteData] = useState<ApiData | null>(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/settings/frontend`
+        );
+        const data: ApiData = await response.json();
+        setSiteData(data);
+      } catch (error) {
+        console.error("Erreur lors du chargement des données:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,26 +69,36 @@ const NavBar = () => {
   }, []);
 
   const handleNavigation = (path: string) => {
-    if (location.pathname === "/" && path.startsWith("/#")) {
-      const sectionId = path.replace("/#", "");
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    } else if (path.startsWith("/#")) {
-      navigate("/");
-      setTimeout(() => {
-        const sectionId = path.replace("/#", "");
+    // Fermer les menus
+    setIsMenuOpen(false);
+    setIsProfileDropdownOpen(false);
+
+    // Si c'est une ancre (commence par /#)
+    if (path.startsWith("/#")) {
+      const sectionId = path.substring(2);
+
+      // Si on est déjà sur la homepage
+      if (location.pathname === "/") {
         const element = document.getElementById(sectionId);
         if (element) {
           element.scrollIntoView({ behavior: "smooth" });
         }
-      }, 100);
-    } else {
+      }
+      // Sinon, naviguer vers la homepage puis scroll
+      else {
+        navigate("/");
+        setTimeout(() => {
+          const element = document.getElementById(sectionId);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 100);
+      }
+    }
+    // Pour les routes normales (comme /apropos)
+    else {
       navigate(path);
     }
-    setIsMenuOpen(false);
-    setIsProfileDropdownOpen(false);
   };
 
   const handleLogout = async () => {
@@ -77,6 +133,44 @@ const NavBar = () => {
     setIsProfileDropdownOpen(false);
   }, [location]);
 
+  // Si les données sont en cours de chargement, afficher un squelette
+  if (loading) {
+    return (
+      <motion.nav
+        className="fixed top-0 left-0 w-full z-50 bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/30 py-3"
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6 }}>
+        <div className="container px-8 lg:px-16 xl:px-24 mx-auto">
+          <div className="flex items-center justify-between">
+            {/* Logo skeleton */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gray-700 animate-pulse"></div>
+              <div className="w-32 h-6 bg-gray-700 rounded animate-pulse hidden sm:block"></div>
+            </div>
+
+            {/* Menu items skeleton */}
+            <div className="hidden md:flex items-center space-x-10 mx-8">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div
+                  key={item}
+                  className="w-16 h-6 bg-gray-700 rounded animate-pulse"></div>
+              ))}
+            </div>
+
+            {/* Auth buttons skeleton */}
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="w-20 h-10 bg-gray-700 rounded-xl animate-pulse"></div>
+              <div className="w-24 h-10 bg-gray-700 rounded-xl animate-pulse"></div>
+            </div>
+
+            {/* Mobile menu button skeleton */}
+            <div className="md:hidden w-10 h-10 bg-gray-700 rounded-xl animate-pulse"></div>
+          </div>
+        </div>
+      </motion.nav>
+    );
+  }
+
   return (
     <motion.nav
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
@@ -88,7 +182,7 @@ const NavBar = () => {
       transition={{ duration: 0.6 }}>
       <div className="container px-8 lg:px-16 xl:px-24 mx-auto">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo avec données dynamiques */}
           <motion.div
             className="flex items-center gap-3"
             whileHover={{ scale: 1.05 }}
@@ -102,7 +196,18 @@ const NavBar = () => {
                 </div>
               </div>
               <span className="text-white font-bold text-2xl hidden sm:block logo-font">
-                Nathie<span className="text-[#e1af30]"> Rose</span>
+                {siteData?.data.general.model.prenom
+                  ? siteData.data.general.model.prenom.split(" ")[0]
+                  : "Mon"}
+                <span className="text-[#e1af30]">
+                  {siteData?.data.general.model.prenom
+                    ? " " +
+                      siteData.data.general.model.prenom
+                        .split(" ")
+                        .slice(1)
+                        .join(" ")
+                    : "  Site"}
+                </span>
               </span>
             </div>
           </motion.div>

@@ -186,22 +186,37 @@ const Home = () => {
 
         {/* Contenu principal au-dessus du carrousel */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-16 xl:px-24 text-center relative z-10 pt-16 md:pt-20">
-          <motion.p className="text-xl md:text-2xl lg:text-3xl mb-4 md:mb-5 max-w-3xl mx-auto leading-relaxed text-gray-200 font-light">
-            Découvrez une{" "}
-            <span className="text-[#e1af30] font-medium bg-gradient-to-r from-[#e1af30] to-[#f3c754] bg-clip-text text-transparent">
-              expérience de chat unique
-            </span>{" "}
-            avec nos compagnons virtuels attentionnés, empathiques et toujours
-            disponibles pour vous.
-          </motion.p>
+          {homeData?.main_subtitle ? (
+            <motion.p className="text-xl md:text-2xl lg:text-3xl mb-4 md:mb-5 max-w-3xl mx-auto leading-relaxed text-gray-200 font-light">
+              {(() => {
+                const subtitle = homeData.main_subtitle;
+                const words = subtitle.split(" ");
 
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 md:mb-8 leading-tight">
-            {homeData?.main_title || "Fait la connaissance de"}{" "}
-            <span className="text-[#e1af30]">
-              {homeData?.main_subtitle || "Nathie Rose"}
-            </span>
-          </h2>
+                // Mettre en valeur les 3 premiers mots
+                if (words.length > 3) {
+                  return (
+                    <>
+                      <span className="text-[#e1af30] font-medium bg-gradient-to-r from-[#e1af30] to-[#f3c754] bg-clip-text text-transparent">
+                        {words.slice(0, 3).join(" ")}
+                      </span>
+                      {" " + words.slice(3).join(" ")}
+                    </>
+                  );
+                }
 
+                return subtitle;
+              })()}
+            </motion.p>
+          ) : (
+            <motion.p className="text-xl md:text-2xl lg:text-3xl mb-4 md:mb-5 max-w-3xl mx-auto leading-relaxed text-gray-200 font-light">
+              Découvrez une{" "}
+              <span className="text-[#e1af30] font-medium bg-gradient-to-r from-[#e1af30] to-[#f3c754] bg-clip-text text-transparent">
+                expérience de chat unique
+              </span>{" "}
+              avec nos compagnons virtuels attentionnés, empathiques et toujours
+              disponibles pour vous.
+            </motion.p>
+          )}
           {/* Boutons d'action */}
           <motion.div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center mb-12 md:mb-16">
             {/* Premier bouton - CTA principal */}
@@ -302,7 +317,7 @@ const Home = () => {
       </div>
 
       {/* Section Statistiques améliorée */}
-      <motion.section
+      {/* <motion.section
         className="py-16 md:py-20 bg-gradient-to-b from-transparent to-[#0a0a0a]"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -338,12 +353,9 @@ const Home = () => {
             ))}
           </motion.div>
         </div>
-      </motion.section>
+      </motion.section> */}
 
-      <section className="py-20 bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center">
-          À propos<span className="text-[#e1af30]"> de moi</span>
-        </h1>
+      <section className="" id="profiles">
         <ProfilesPage />
       </section>
 
