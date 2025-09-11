@@ -30,6 +30,9 @@ import Parametrage from "./pages/Admin/Parametrage/Parametrage";
 import Model from "./pages/Admin/Model/Model";
 import ModelFormViewWrapper from "./pages/Admin/Model/ModelFormViewWrapper";
 import ModelFormView from "./components/Ui/forms/ModelFormView";
+import CategoryFormViewWrapper from "./pages/Admin/Categories/CategoryFormViewWrapper";
+import AdminCategories from "./pages/Admin/Categories/AdminCategories";
+import CategoryFormView from "./components/Ui/forms/CategoryFormView";
 
 const App: React.FC = () => {
   return (
@@ -111,6 +114,20 @@ const App: React.FC = () => {
                           path="models/edit/:id"
                           element={<ModelFormViewWrapper />}
                         />
+                        {/* Categorie */}
+                        <Route
+                          path="categories"
+                          element={<AdminCategories />}
+                        />
+                        <Route
+                          path="categories/create"
+                          element={<CategoryFormView />}
+                        />
+                        <Route
+                          path="categories/edit/:id"
+                          element={<CategoryFormViewWrapper />}
+                        />
+
                         {/* Routes de gestion des photos */}
                         <Route path="photo" element={<PhotoPage />} />
                         <Route path="photo/create" element={<CreatePhoto />} />

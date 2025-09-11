@@ -1,51 +1,27 @@
-import React, { useState, useEffect } from "react";
+// views/admin/AdminCategories.tsx
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useModels } from "../../../hooks/useModels";
-import { categoryServiceCrud } from "../../../services/categoryServiceCrud";
-import type { Categorie } from "../../../types/category";
-import CategoryFilter from "../../../components/Ui/CategoryFilter";
+import { useCategories } from "../../../hooks/useCategories";
 
-const AdminModels: React.FC = () => {
-  const { models, loading, error, deleteModel } = useModels();
-  const [categories, setCategories] = useState<Categorie[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+const AdminCategories: React.FC = () => {
+  const { categories, loading, error, deleteCategory } = useCategories();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ⚡ Charger toutes les catégories
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await categoryServiceCrud.getAll();
-        setCategories(data);
-      } catch (err) {
-        console.error("Erreur lors du chargement des catégories :", err);
-      }
-    };
-    fetchCategories();
-  }, []);
-
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce modèle ?"))
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette catégorie ?"))
       return;
     try {
-      await deleteModel(id);
-    } catch (err) {
-      console.error("Erreur lors de la suppression :", err);
+      await deleteCategory(id);
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de la suppression");
     }
   };
 
-  // ⚡ Filtrer les modèles par recherche et par catégories sélectionnées
-  const filteredModels = models
-    .filter((m) =>
-      `${m.prenom} ${m.nationalite}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    )
-    .filter((m) =>
-      selectedCategories.length === 0
-        ? true
-        : m.categories?.some((mc) => selectedCategories.includes(mc.id))
-    );
+  const filteredCategories = categories.filter((c) =>
+    `${c.name} ${c.slug} ${c.description || ""}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
 
   if (loading) return <div className="text-center py-8">Chargement...</div>;
   if (error)
@@ -55,21 +31,12 @@ const AdminModels: React.FC = () => {
     <div className="container mx-auto px-6 py-8">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Gestion des Modèles</h1>
+        <h1 className="text-3xl font-bold">Gestion des Catégories</h1>
         <Link
-          to="/admin/models/create"
+          to="/admin/categories/create"
           className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
-          + Nouveau Modèle
+          + Nouvelle Catégorie
         </Link>
-      </div>
-
-      {/* Filtre par catégorie */}
-      <div className="mb-6">
-        <CategoryFilter
-          categories={categories}
-          selectedCategories={selectedCategories}
-          onCategoryChange={setSelectedCategories}
-        />
       </div>
 
       {/* Barre de recherche */}
@@ -83,7 +50,7 @@ const AdminModels: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Prénom, nationalité..."
+              placeholder="Nom, slug, description..."
               className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -97,22 +64,22 @@ const AdminModels: React.FC = () => {
         </div>
       </div>
 
-      {/* Tableau des modèles */}
+      {/* Tableau des catégories */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Modèle
+                Nom
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Âge
+                Slug
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Nationalité
+                Description
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Photo
+                Statut
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                 Actions
@@ -120,43 +87,34 @@ const AdminModels: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredModels.map((model) => (
-              <tr key={model.id} className="hover:bg-gray-50 transition">
+            {filteredCategories.map((category) => (
+              <tr key={category.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 text-gray-900 font-medium">
-                  {model.prenom}
+                  {category.name}
+                </td>
+                <td className="px-6 py-4 text-gray-600">{category.slug}</td>
+                <td className="px-6 py-4 text-gray-600">
+                  {category.description || "—"}
                 </td>
                 <td className="px-6 py-4">
-                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
-                    {model.age} ans
+                  <span
+                    className={`px-2 py-1 text-xs rounded-full ${
+                      category.is_active
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}>
+                    {category.is_active ? "Active" : "Inactive"}
                   </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
-                    {model.nationalite}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  {model.photo ? (
-                    <img
-                      src={`${import.meta.env.VITE_IMG_URL}${model.photo}`}
-                      alt={model.prenom}
-                      className="w-16 h-16 rounded-full object-cover border border-gray-300 shadow-sm"
-                    />
-                  ) : (
-                    <span className="text-sm italic text-gray-400">
-                      Aucune photo
-                    </span>
-                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex space-x-3">
                     <Link
-                      to={`/admin/models/edit/${model.id}`}
+                      to={`/admin/categories/edit/${category.id}`}
                       className="text-indigo-600 hover:text-indigo-800 font-medium">
                       Modifier
                     </Link>
                     <button
-                      onClick={() => handleDelete(model.id)}
+                      onClick={() => handleDelete(category.id)}
                       className="text-red-600 hover:text-red-800 font-medium">
                       Supprimer
                     </button>
@@ -167,9 +125,9 @@ const AdminModels: React.FC = () => {
           </tbody>
         </table>
 
-        {filteredModels.length === 0 && (
+        {filteredCategories.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            Aucun modèle trouvé
+            Aucune catégorie trouvée
           </div>
         )}
       </div>
@@ -177,4 +135,4 @@ const AdminModels: React.FC = () => {
   );
 };
 
-export default AdminModels;
+export default AdminCategories;

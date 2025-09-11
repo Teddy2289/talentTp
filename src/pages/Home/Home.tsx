@@ -65,6 +65,7 @@ const Home = () => {
         }
 
         const data = await response.json();
+        console.log("Réponse brute de l'API frontend:", data);
 
         if (data.success) {
           setHomeData(data.data.home);
@@ -186,6 +187,18 @@ const Home = () => {
 
         {/* Contenu principal au-dessus du carrousel */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-16 xl:px-24 text-center relative z-10 pt-16 md:pt-20">
+          <div className="mb-4 md:mb-6">
+            {homeData?.main_title && (
+              <motion.h1
+                className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}>
+                {homeData.main_title}
+              </motion.h1>
+            )}
+          </div>
+
           {homeData?.main_subtitle ? (
             <motion.p className="text-xl md:text-2xl lg:text-3xl mb-4 md:mb-5 max-w-3xl mx-auto leading-relaxed text-gray-200 font-light">
               {(() => {

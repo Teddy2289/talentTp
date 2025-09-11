@@ -1,8 +1,8 @@
-// components/Ui/forms/ModelFormView.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { modelServiceCrud } from "../../../services/modelServiceCrud";
 import type { CreateModel, UpdateModel, Model } from "../../../types/model";
+import { ArrowLeftIcon } from "lucide-react";
 
 interface Props {
   modelId?: number;
@@ -11,7 +11,6 @@ interface Props {
 export default function ModelFormView({ modelId }: Props) {
   const navigate = useNavigate();
 
-  // ⚡️ Formulaire
   const [form, setForm] = useState<CreateModel | UpdateModel>({
     prenom: "",
     nationalite: "",
@@ -19,17 +18,17 @@ export default function ModelFormView({ modelId }: Props) {
     passe_temps: "",
     citation: "",
     domicile: "",
-    profession: "",
     localisation: "",
   });
 
   const [photo, setPhoto] = useState<File | undefined>(undefined);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [editingModel, setEditingModel] = useState<Model | null>(null);
 
-  // ⚡️ Charger le modèle si on est en édition
+  // ⚡️ Charger le modèle si édition
   useEffect(() => {
     if (!modelId) return;
 
@@ -39,6 +38,9 @@ export default function ModelFormView({ modelId }: Props) {
         const model = await modelServiceCrud.getById(modelId);
         setForm(model);
         setEditingModel(model);
+        if (model.photo) {
+          setPreviewUrl(`${import.meta.env.VITE_IMG_URL}${model.photo}`);
+        }
       } catch (err) {
         console.error("Erreur lors de la récupération du modèle :", err);
         setError("Impossible de charger le modèle");
@@ -55,6 +57,16 @@ export default function ModelFormView({ modelId }: Props) {
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,59 +90,70 @@ export default function ModelFormView({ modelId }: Props) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="flex items-center mb-8">
-        <button
-          onClick={() => navigate("/admin/models")}
-          className="mr-4  hover:text-yellow-900">
-          ← Retour
-        </button>
-        <h1 className="text-3xl font-bold 0">
-          {editingModel ? "Modifier un modèle" : "Créer un modèle"}
-        </h1>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center mb-8">
+          <button
+            onClick={() => navigate("/admin/models")}
+            className="flex items-center text-yellow-600 hover:text-yellow-800 transition-colors duration-200 mr-4">
+            <ArrowLeftIcon className="mr-2" size={20} /> Retour
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {editingModel ? "Modifier un modèle" : "Créer un modèle"}
+          </h1>
+        </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+        <div className="bg-white p-8 rounded-2xl shadow-sm">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
 
-        {loading && !editingModel ? (
-          <div className="text-center py-8">Chargement...</div>
-        ) : (
           <form onSubmit={handleSubmit} className="space-y-6 text-black">
-            <InputField
-              label="Prénom *"
-              name="prenom"
-              value={form.prenom || ""}
-              onChange={handleChange}
-              required
-            />
+            {/* Grid pour inputs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <InputField
+                label="Prénom *"
+                name="prenom"
+                value={form.prenom || ""}
+                onChange={handleChange}
+                required
+              />
+              <InputField
+                label="Nationalité *"
+                name="nationalite"
+                value={form.nationalite || ""}
+                onChange={handleChange}
+                required
+              />
+              <InputField
+                label="Âge"
+                type="number"
+                name="age"
+                value={form.age ?? ""}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Passe-temps"
+                name="passe_temps"
+                value={form.passe_temps || ""}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Domicile"
+                name="domicile"
+                value={form.domicile || ""}
+                onChange={handleChange}
+              />
 
-            <InputField
-              label="Nationalité *"
-              name="nationalite"
-              value={form.nationalite || ""}
-              onChange={handleChange}
-              required
-            />
-
-            <InputField
-              label="Âge"
-              type="number"
-              name="age"
-              value={form.age ?? ""}
-              onChange={handleChange}
-            />
-
-            <InputField
-              label="Passe-temps"
-              name="passe_temps"
-              value={form.passe_temps || ""}
-              onChange={handleChange}
-            />
+              <InputField
+                label="Localisation"
+                name="localisation"
+                value={form.localisation || ""}
+                onChange={handleChange}
+              />
+            </div>
 
             <TextAreaField
               label="Citation"
@@ -139,58 +162,45 @@ export default function ModelFormView({ modelId }: Props) {
               onChange={handleChange}
             />
 
-            <InputField
-              label="Domicile"
-              name="domicile"
-              value={form.domicile || ""}
-              onChange={handleChange}
-            />
-
-            <InputField
-              label="Profession"
-              name="profession"
-              value={form.profession || ""}
-              onChange={handleChange}
-            />
-
-            <InputField
-              label="Localisation"
-              name="localisation"
-              value={form.localisation || ""}
-              onChange={handleChange}
-            />
-
             {/* Photo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Photo
               </label>
+              <div className="relative w-full h-64 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 mb-4">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Aperçu"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    Aperçu de la photo
+                  </div>
+                )}
+              </div>
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setPhoto(e.target.files?.[0])}
+                onChange={handlePhotoChange}
                 className="w-full"
               />
-              {editingModel?.photo && !photo && (
-                <img
-                  src={`${import.meta.env.VITE_IMG_URL}${editingModel.photo}`}
-                  alt="aperçu"
-                  className="mt-2 h-24 rounded-md object-cover"
-                />
-              )}
             </div>
 
-            <div className="flex justify-end space-x-4 pt-6">
+            {/* Actions */}
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => navigate("/admin/models")}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                className="px-6 py-3 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                disabled={loading}>
                 Annuler
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                className="px-8 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 transition-all duration-200">
                 {loading
                   ? editingModel
                     ? "Mise à jour..."
@@ -201,7 +211,7 @@ export default function ModelFormView({ modelId }: Props) {
               </button>
             </div>
           </form>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -228,7 +238,7 @@ function InputField({
       <input
         type={type}
         {...props}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-200"
       />
     </div>
   );
@@ -251,7 +261,7 @@ function TextAreaField({
       <textarea
         {...props}
         rows={3}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-200"
       />
     </div>
   );
