@@ -22,7 +22,8 @@ export interface Model {
   localisation: string;
   created_at: Date;
   updated_at: Date;
-  categories?: ModelCategorie[]; // ⚡ Ajouté pour le filtre
+  categories?: ModelCategorie[];
+  categoryIds?: number[];
 }
 
 export type CreateModel = Omit<Model, "id" | "createdAt" | "updatedAt">;

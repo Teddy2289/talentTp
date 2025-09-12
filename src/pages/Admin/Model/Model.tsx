@@ -4,6 +4,7 @@ import { useModels } from "../../../hooks/useModels";
 import { categoryServiceCrud } from "../../../services/categoryServiceCrud";
 import type { Categorie } from "../../../types/category";
 import CategoryFilter from "../../../components/Ui/CategoryFilter";
+import Pagination from "../../../components/Ui/Pagination";
 
 const AdminModels: React.FC = () => {
   const { models, loading, error, deleteModel } = useModels();
@@ -11,7 +12,12 @@ const AdminModels: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ⚡ Charger toutes les catégories
+  // ✨ --- États pour la pagination ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Vous pouvez ajuster ce nombre
+  // ✨ ----------------------------------
+
+  // Charger toutes les catégories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -24,6 +30,11 @@ const AdminModels: React.FC = () => {
     fetchCategories();
   }, []);
 
+  // ✨ Réinitialiser la page à 1 lorsque les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategories, searchTerm]);
+
   const handleDelete = async (id: number) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce modèle ?"))
       return;
@@ -34,7 +45,7 @@ const AdminModels: React.FC = () => {
     }
   };
 
-  // ⚡ Filtrer les modèles par recherche et par catégories sélectionnées
+  // Filtrer les modèles par recherche et par catégories sélectionnées
   const filteredModels = models
     .filter((m) =>
       `${m.prenom} ${m.nationalite}`
@@ -46,6 +57,16 @@ const AdminModels: React.FC = () => {
         ? true
         : m.categories?.some((mc) => selectedCategories.includes(mc.id))
     );
+
+  // ✨ --- Logique de pagination ---
+  const totalPages = Math.ceil(filteredModels.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const paginatedModels = filteredModels.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  // ✨ --------------------------------
 
   if (loading) return <div className="text-center py-8">Chargement...</div>;
   if (error)
@@ -89,9 +110,12 @@ const AdminModels: React.FC = () => {
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => setSearchTerm("")}
-              className="bg-yellow-600 text-white px-6 py-2 rounded-md hover:bg-yellow-700 transition-colors">
-              Réinitialiser
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedCategories([]);
+              }}
+              className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors">
+              Réinitialiser les filtres
             </button>
           </div>
         </div>
@@ -101,26 +125,34 @@ const AdminModels: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
+            {/* ... Vos en-têtes de tableau ... */}
             <tr>
+                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Modèle
+                                Modèle              {" "}
               </th>
+                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Âge
+                                Âge              {" "}
               </th>
+                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Nationalité
+                                Nationalité              {" "}
               </th>
+                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Photo
+                                Photo              {" "}
               </th>
+                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Actions
+                                Actions              {" "}
               </th>
+                         {" "}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredModels.map((model) => (
+            {/* ✨ Utiliser paginatedModels au lieu de filteredModels */}
+            {paginatedModels.map((model) => (
               <tr key={model.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 text-gray-900 font-medium">
                   {model.prenom}
@@ -169,10 +201,20 @@ const AdminModels: React.FC = () => {
 
         {filteredModels.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            Aucun modèle trouvé
+            Aucun modèle trouvé pour les filtres actuels.
           </div>
         )}
       </div>
+
+      {/* ✨ --- Intégration du composant de pagination --- */}
+      <div className="mt-8 flex justify-center">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+      {/* ✨ ------------------------------------------------ */}
     </div>
   );
 };

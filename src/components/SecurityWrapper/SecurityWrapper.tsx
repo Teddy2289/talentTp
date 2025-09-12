@@ -1,56 +1,59 @@
-// components/SecurityWrapper/SecurityWrapper.tsx (ajoutez temporairement)
 import React, { useEffect, useState } from "react";
 import { useSecurityDetection } from "../../hooks/useSecurityDetection";
-import { ScreenshotOverlay } from "../ScreenshotOverlay/ScreenshotOverlay";
+import { SecurityViolation } from "../SecurityViolation/SecurityViolation";
+import { useSecurity } from "../../contexts/SecurityContext";
+import { SimpleSecurityWrapper } from "./SimpleSecurityWrapper";
 import "./SecurityWrapper.css";
 
 interface SecurityWrapperProps {
   children: React.ReactNode;
-  securityEnabled?: boolean;
-  watermarkText?: string;
+  showViolationPage?: boolean;
 }
 
 export const SecurityWrapper: React.FC<SecurityWrapperProps> = ({
   children,
-  securityEnabled = true,
-  watermarkText = "Confidentiel - Ne pas partager",
+  showViolationPage = true,
 }) => {
+  const { securitySettings } = useSecurity();
   const [violationDetected, setViolationDetected] = useState(false);
-  const { screenshotDetected, devToolsDetected } =
-    useSecurityDetection(securityEnabled);
+  const [violationType, setViolationType] = useState<string>("");
 
-  // DEBUG: Afficher l'état de la protection
-  useEffect(() => {
-    console.log("SecurityWrapper mounted - securityEnabled:", securityEnabled);
-    console.log("Current path:", window.location.pathname);
-  }, [securityEnabled]);
+  const { textSelectionDetected, devToolsDetected } = useSecurityDetection(
+    true,
+    securitySettings.preventTextSelection,
+    securitySettings.preventDevTools
+  );
 
   useEffect(() => {
-    if (devToolsDetected && securityEnabled) {
-      console.log("DevTools detected on path:", window.location.pathname);
+    if (devToolsDetected && securitySettings.preventDevTools) {
+      setViolationType("devtools");
+      setViolationDetected(true);
+
+      if (!showViolationPage) {
+        window.location.reload();
+      }
+    }
+  }, [devToolsDetected, securitySettings.preventDevTools, showViolationPage]);
+
+  useEffect(() => {
+    if (textSelectionDetected && securitySettings.preventTextSelection) {
+      setViolationType("text_selection");
       setViolationDetected(true);
     }
-  }, [devToolsDetected, securityEnabled]);
+  }, [textSelectionDetected, securitySettings.preventTextSelection]);
 
-  if (violationDetected) {
+  if (violationDetected && showViolationPage) {
     return (
-      <div className="security-violation">
-        <h1>Violation de sécurité détectée</h1>
-        <p>L'utilisation des outils de développement n'est pas autorisée.</p>
-        <button onClick={() => window.location.reload()}>
-          Recharger l'application
-        </button>
-      </div>
+      <SecurityViolation
+        violationType={violationType}
+        onReload={() => window.location.reload()}
+      />
     );
   }
 
-  return (
-    <>
-      <ScreenshotOverlay
-        visible={screenshotDetected}
-        text={`Capture détectée - ${watermarkText}`}
-      />
-      {children}
-    </>
-  );
+  if (violationDetected && !showViolationPage) {
+    return null;
+  }
+
+  return <SimpleSecurityWrapper>{children}</SimpleSecurityWrapper>;
 };

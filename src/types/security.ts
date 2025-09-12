@@ -10,4 +10,7 @@ export interface ProtectedRouteProps {
   requireAuth?: boolean;
   requiredRole?: string;
   securityEnabled?: boolean;
+  securityRules?: SecurityConfig;
+  preventTextSelection?: boolean;
+  preventDevTools?: boolean;
 }

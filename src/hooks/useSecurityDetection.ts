@@ -1,42 +1,62 @@
-// hooks/useSecurityDetection.ts
-import { useState, useEffect } from "react";
-import { screenshotBlocker } from "../services/screenshotBlocker";
-import { fingerprintService } from "../services/fingerprintService";
+import { useState, useEffect, useRef } from "react";
+import { securityMonitor } from "../services/securityMonitor";
 
-export const useSecurityDetection = (isEnabled: boolean) => {
-  const [screenshotDetected, setScreenshotDetected] = useState(false);
+export const useSecurityDetection = (
+  isEnabled: boolean,
+  monitorTextSelection: boolean,
+  monitorDevTools: boolean
+) => {
+  const [textSelectionDetected, setTextSelectionDetected] = useState(false);
   const [devToolsDetected, setDevToolsDetected] = useState(false);
-  const [browserDetails, setBrowserDetails] = useState<any>(null);
+  const devToolsCheckRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (isEnabled) {
-      // Récupérer l'empreinte du navigateur
-      fingerprintService
-        .getFingerprint()
-        .then((details) => setBrowserDetails(details))
-        .catch((error) => console.error("Failed to get fingerprint:", error));
+    if (!isEnabled) {
+      setTextSelectionDetected(false);
+      setDevToolsDetected(false);
+      if (devToolsCheckRef.current) {
+        clearInterval(devToolsCheckRef.current);
+      }
+      return;
+    }
 
-      // Détection des captures d'écran
-      const handleScreenshotAttempt = () => {
-        setScreenshotDetected(true);
-        setTimeout(() => setScreenshotDetected(false), 3000);
+    // Détection de la sélection de texte
+    if (monitorTextSelection) {
+      const handleSelection = () => {
+        setTextSelectionDetected(true);
+        setTimeout(() => setTextSelectionDetected(false), 100);
       };
 
-      screenshotBlocker.enableProtection(handleScreenshotAttempt);
+      securityMonitor.enableTextSelectionDetection(handleSelection);
+    } else {
+      securityMonitor.disableTextSelectionDetection();
+      setTextSelectionDetected(false);
+    }
 
-      // Vérification périodique des outils de développement
-      const devToolsCheckInterval = setInterval(() => {
-        if (fingerprintService.detectDevTools()) {
+    // Détection des outils de développement
+    if (monitorDevTools) {
+      const checkDevTools = () => {
+        if (securityMonitor.detectDevTools()) {
           setDevToolsDetected(true);
         }
-      }, 1000);
-
-      return () => {
-        screenshotBlocker.disableProtection();
-        clearInterval(devToolsCheckInterval);
       };
-    }
-  }, [isEnabled]);
 
-  return { screenshotDetected, devToolsDetected, browserDetails };
+      // Vérifier immédiatement puis périodiquement
+      checkDevTools();
+      devToolsCheckRef.current = setInterval(checkDevTools, 2000);
+    } else {
+      setDevToolsDetected(false);
+      if (devToolsCheckRef.current) {
+        clearInterval(devToolsCheckRef.current);
+      }
+    }
+
+    return () => {
+      if (devToolsCheckRef.current) {
+        clearInterval(devToolsCheckRef.current);
+      }
+    };
+  }, [isEnabled, monitorTextSelection, monitorDevTools]);
+
+  return { textSelectionDetected, devToolsDetected };
 };

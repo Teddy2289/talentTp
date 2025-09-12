@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Select from "react-select";
 import { modelServiceCrud } from "../../../services/modelServiceCrud";
+import { categoryServiceCrud } from "../../../services/categoryServiceCrud";
 import type { CreateModel, UpdateModel, Model } from "../../../types/model";
+import type { Categorie } from "../../../types/category";
 import { ArrowLeftIcon } from "lucide-react";
 
 interface Props {
   modelId?: number;
+}
+
+interface CategoryOption {
+  value: number;
+  label: string;
 }
 
 export default function ModelFormView({ modelId }: Props) {
@@ -19,16 +27,43 @@ export default function ModelFormView({ modelId }: Props) {
     citation: "",
     domicile: "",
     localisation: "",
+    categoryIds: [],
   });
 
+  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<
+    CategoryOption[]
+  >([]);
   const [photo, setPhoto] = useState<File | undefined>(undefined);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [editingModel, setEditingModel] = useState<Model | null>(null);
 
-  // ⚡️ Charger le modèle si édition
+  // Charger les catégories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await categoryServiceCrud.getAll();
+        setCategories(categoriesData);
+
+        // Préparer les options pour react-select
+        const options = categoriesData.map((category) => ({
+          value: category.id,
+          label: category.name,
+        }));
+        setCategoryOptions(options);
+      } catch (err) {
+        console.error("Erreur lors du chargement des catégories :", err);
+        setError("Impossible de charger les catégories");
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Charger le modèle si édition
   useEffect(() => {
     if (!modelId) return;
 
@@ -36,11 +71,23 @@ export default function ModelFormView({ modelId }: Props) {
       setLoading(true);
       try {
         const model = await modelServiceCrud.getById(modelId);
-        setForm(model);
-        setEditingModel(model);
-        if (model.photo) {
-          setPreviewUrl(`${import.meta.env.VITE_IMG_URL}${model.photo}`);
-        }
+        setForm({
+          prenom: model.prenom || "",
+          nationalite: model.nationalite || "",
+          age:
+            model.age !== null && model.age !== undefined
+              ? model.age
+              : undefined,
+          passe_temps: model.passe_temps || "",
+          citation: model.citation || "",
+          domicile: model.domicile || "",
+          localisation: model.localisation || "",
+          // Convertir en nombres
+          categoryIds: model.categories
+            ? model.categories.map((c) => Number(c.id))
+            : [],
+        });
+        // ... reste du code
       } catch (err) {
         console.error("Erreur lors de la récupération du modèle :", err);
         setError("Impossible de charger le modèle");
@@ -52,10 +99,33 @@ export default function ModelFormView({ modelId }: Props) {
     fetchModel();
   }, [modelId]);
 
+  // ModelFormView.tsx - Remplacez handleCategoryChange par ceci :
+
+  const handleCategoryChange = (selectedOptions: any) => {
+    setSelectedCategories(selectedOptions || []);
+
+    // FORCER la conversion en nombres
+    const categoryIds = selectedOptions
+      ? selectedOptions
+          .map((option: CategoryOption) => {
+            // Convertir explicitement en nombre
+            const id = Number(option.value);
+            return isNaN(id) ? 0 : id; // Fallback à 0 si conversion échoue
+          })
+          .filter((id: number) => id !== 0) // Filtrer les conversions invalides
+      : [];
+
+    console.log("✅ Category IDs (nombres):", categoryIds);
+    setForm((prev) => ({ ...prev, categoryIds }));
+  };
+
+  // Ajoutez cette validation pour l'âge
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+
+    // Pour tous les champs, garder la valeur telle quelle (string)
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -74,6 +144,13 @@ export default function ModelFormView({ modelId }: Props) {
     setLoading(true);
     setError(null);
 
+    console.log("🔍 Vérification finale - categoryIds:", {
+      values: form.categoryIds,
+      types: Array.isArray(form.categoryIds)
+        ? form.categoryIds.map((id) => ({ value: id, type: typeof id }))
+        : form.categoryIds,
+    });
+
     try {
       if (editingModel) {
         await modelServiceCrud.update(editingModel.id, form, photo);
@@ -82,7 +159,7 @@ export default function ModelFormView({ modelId }: Props) {
       }
       navigate("/admin/models");
     } catch (err) {
-      console.error(err);
+      console.error("❌ Erreur API :", err);
       setError("Erreur lors de l'enregistrement");
     } finally {
       setLoading(false);
@@ -111,7 +188,6 @@ export default function ModelFormView({ modelId }: Props) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6 text-black">
-            {/* Grid pour inputs */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <InputField
                 label="Prénom *"
@@ -146,13 +222,28 @@ export default function ModelFormView({ modelId }: Props) {
                 value={form.domicile || ""}
                 onChange={handleChange}
               />
-
               <InputField
                 label="Localisation"
                 name="localisation"
                 value={form.localisation || ""}
                 onChange={handleChange}
               />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Catégories *
+                </label>
+                <Select
+                  isMulti
+                  options={categoryOptions}
+                  value={selectedCategories}
+                  onChange={handleCategoryChange}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Sélectionnez une  catégories..."
+                  noOptionsMessage={() => "Aucune catégorie disponible"}
+                />
+              </div>
             </div>
 
             <TextAreaField
@@ -162,7 +253,6 @@ export default function ModelFormView({ modelId }: Props) {
               onChange={handleChange}
             />
 
-            {/* Photo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Photo
@@ -188,7 +278,6 @@ export default function ModelFormView({ modelId }: Props) {
               />
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <button
                 type="button"
@@ -213,11 +302,37 @@ export default function ModelFormView({ modelId }: Props) {
           </form>
         </div>
       </div>
+
+      <style>{`
+        .react-select-container .react-select__control {
+          border: 1px solid #D1D5DB;
+          border-radius: 0.5rem;
+          padding: 0.5rem;
+          min-height: 48px;
+        }
+        
+        .react-select-container .react-select__control:hover {
+          border-color: #D1D5DB;
+        }
+        
+        .react-select-container .react-select__control--is-focused {
+          border-color: #EAB308;
+          box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2);
+        }
+        
+        .react-select-container .react-select__multi-value {
+          background-color: #FEF3C7;
+          border-radius: 0.25rem;
+        }
+        
+        .react-select-container .react-select__multi-value__label {
+          color: #92400E;
+        }
+      `}</style>
     </div>
   );
 }
 
-// 🔹 Composants utilitaires
 function InputField({
   label,
   type = "text",
