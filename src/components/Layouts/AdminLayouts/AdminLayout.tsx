@@ -10,13 +10,13 @@ import {
   ShieldCheck,
   UsersRound,
   Menu,
-  X,
-  Search,
   ChevronDown,
   ChevronRight,
   LogOut,
   User,
 } from "lucide-react";
+
+import admin from "../../../assets/user-gear.png";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -113,11 +113,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="flex flex-col w-full h-full">
           <div className="flex items-center justify-between h-16 flex-shrink-0 px-4 border-b border-gray-600">
             {isSidebarOpen ? (
-              <span className="text-white text-xl font-bold tracking-wide">
-                Admin Panel
+              <span className="text-white text-xl font-bold tracking-wide flex items-center gap-x-1">
+                <img src={admin} className="h-8 w-8" alt="" />
+                Administrateur
               </span>
             ) : (
-              <span className="text-white text-xl font-bold">AP</span>
+              <img src={admin} className="h-8 w-8" alt="" />
             )}
             <button
               onClick={toggleSidebar}

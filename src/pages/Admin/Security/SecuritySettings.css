@@ -1,7 +1,7 @@
 /* pages/Admin/Security/SecuritySettings.css */
 .security-settings {
   padding: 20px;
-  max-width: 800px;
+  max-width: 1024px;
   margin: 0 auto;
 }
 
@@ -51,13 +51,13 @@
 }
 
 .preset-btn:hover {
-  border-color: #3498db;
+  border-color: #e1af30;
   transform: translateY(-2px);
 }
 
 .preset-btn.active {
-  border-color: #2ecc71;
-  background: #2ecc71;
+  border-color: #00a63e;
+  background: #00a63e;
   color: white;
 }
 
@@ -137,7 +137,7 @@
 }
 
 input:checked + .slider {
-  background-color: #2ecc71;
+  background-color: #00a63e;
 }
 
 input:checked + .slider:before {
@@ -171,13 +171,18 @@ input:checked + .slider:before {
 }
 
 .status-item.active {
-  border-color: #2ecc71;
+  border-color: #00a63e;
   background: #e8f5e8;
+  display: flex;
+  align-items: center;
 }
 
 .status-item.inactive {
   border-color: #e74c3c;
   background: #fdedec;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .status-icon {
@@ -192,7 +197,7 @@ input:checked + .slider:before {
 
 .save-btn {
   padding: 15px 30px;
-  background: #3498db;
+  background: #e1af30;
   color: white;
   border: none;
   border-radius: 6px;
@@ -203,6 +208,38 @@ input:checked + .slider:before {
 }
 
 .save-btn:hover {
-  background: #2980b9;
+  background: #9f7b22;
   transform: translateY(-2px);
+}
+
+/* Grid principale */
+.security-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+  align-items: flex-start; /* alignement haut */
+}
+
+/* Harmonisation cartes */
+.security-controls,
+.security-status {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+/* Status-items mêmes dimensions que control-items */
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .security-grid {
+    grid-template-columns: 1fr;
+  }
 }

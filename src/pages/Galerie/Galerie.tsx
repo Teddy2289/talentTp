@@ -2,8 +2,18 @@ import { useState, useEffect } from "react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-import { photoService } from "../../services/photoService"; // Import du service
-import type { Photo } from "../../types/photoType"; // Import du type
+import { photoService } from "../../services/photoService";
+import type { Photo } from "../../types/photoType";
+import {
+  Heart,
+  X,
+  Filter,
+  ArrowUpDown,
+  Sparkles,
+  Calendar,
+  Flame,
+} from "lucide-react";
+import "./Galerie.css";
 
 export default function Galerie() {
   const [selectedTag, setSelectedTag] = useState<string>("all");
@@ -12,6 +22,7 @@ export default function Galerie() {
   const [sortBy, setSortBy] = useState<string>("default");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   // Charger les photos depuis l'API
   useEffect(() => {
@@ -22,9 +33,13 @@ export default function Galerie() {
     try {
       setLoading(true);
       setError(null);
-      // Appel au service pour récupérer toutes les photos
       const photosData = await photoService.getAll();
       setGalleryPhotos(photosData);
+
+      // Extraire tous les tags uniques
+      const allTags = photosData.flatMap((photo) => photo.tags || []);
+      const uniqueTags = Array.from(new Set(allTags));
+      setAvailableTags(uniqueTags);
     } catch (err) {
       console.error("Erreur lors du chargement des photos:", err);
       setError(
@@ -35,7 +50,7 @@ export default function Galerie() {
     }
   };
 
-  // Charger les likes depuis le localStorage au montage du composant
+  // Charger les likes depuis le localStorage
   useEffect(() => {
     const savedLikes = localStorage.getItem("photoLikes");
     if (savedLikes) {
@@ -60,22 +75,34 @@ export default function Galerie() {
     localStorage.setItem("photoLikes", JSON.stringify(likesData));
   };
 
-  // Gestion du like
+  // Gestion du like avec animation
   const handleLike = (photoId: number, e: React.MouseEvent): void => {
-    e.stopPropagation(); // Empêche l'ouverture du modal quand on like
+    e.stopPropagation();
     setGalleryPhotos((prevPhotos) =>
       prevPhotos.map((photo) => {
         if (photo.id === photoId) {
           const newLikes = (photo.likes || 0) + 1;
           saveLikesToLocalStorage(photoId, newLikes);
-          return { ...photo, likes: newLikes };
+          return { ...photo, likes: newLikes, liked: true };
         }
         return photo;
       })
     );
+
+    // Réinitialiser l'état "liked" après l'animation
+    setTimeout(() => {
+      setGalleryPhotos((prevPhotos) =>
+        prevPhotos.map((photo) => {
+          if (photo.id === photoId) {
+            return { ...photo, liked: false };
+          }
+          return photo;
+        })
+      );
+    }, 800);
   };
 
-  // Filtrer les photos
+  // Filtrer les photos par tag
   const filteredPhotos =
     selectedTag === "all"
       ? galleryPhotos
@@ -88,7 +115,6 @@ export default function Galerie() {
     if (sortBy === "likes") {
       return (b.likes || 0) - (a.likes || 0);
     } else if (sortBy === "recent") {
-      // Trier par date de création si disponible, sinon par ID
       if (a.created_at && b.created_at) {
         return (
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -96,7 +122,7 @@ export default function Galerie() {
       }
       return (b.id || 0) - (a.id || 0);
     }
-    return (a.id || 0) - (b.id || 0); // Ordre par défaut
+    return (a.id || 0) - (b.id || 0);
   });
 
   // Fonction pour obtenir l'URL complète de l'image
@@ -104,16 +130,18 @@ export default function Galerie() {
     if (url.startsWith("http")) {
       return url;
     }
-    // Si l'URL est relative, ajouter le base URL de votre API
-    return `http://localhost:3000${url.startsWith("/") ? "" : "/"}${url}`;
+    return `${import.meta.env.VITE_IMG_URL || "http://localhost:3000"}${
+      url.startsWith("/") ? "" : "/"
+    }${url}`;
   };
 
   if (loading) {
     return (
-      <section className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] text-white">
-        <div className="container mx-auto px-6 text-center">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#e1af30]"></div>
+      <section className="gallery-section loading">
+        <div className="container">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Chargement des photos...</p>
           </div>
         </div>
       </section>
@@ -122,13 +150,14 @@ export default function Galerie() {
 
   if (error) {
     return (
-      <section className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] text-white">
-        <div className="container mx-auto px-6 text-center">
-          <div className="bg-red-900 bg-opacity-20 border border-red-700 text-red-300 px-6 py-4 rounded-lg max-w-md mx-auto">
+      <section className="gallery-section">
+        <div className="container">
+          <div className="error-state">
+            <div className="error-icon">⚠️</div>
+            <h3>Erreur de chargement</h3>
             <p>{error}</p>
-            <button
-              onClick={fetchPhotos}
-              className="mt-4 bg-[#e1af30] text-black px-4 py-2 rounded-full hover:bg-[#d4a225] transition-colors">
+            <button onClick={fetchPhotos} className="retry-button">
+              <Sparkles size={16} />
               Réessayer
             </button>
           </div>
@@ -138,64 +167,50 @@ export default function Galerie() {
   }
 
   return (
-    <section
-      id="gallery"
-      className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] text-white">
-      <div className="container mx-auto px-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Découvre mes <span className="text-[#e1af30]">photos</span>
-        </h1>
-        <p className="text-lg text-gray-400 mb-10">
-          Une collection de moments capturés.
-        </p>
+    <section id="gallery" className="gallery-section">
+      <div className="container">
+        <div className="gallery-header">
+          <h1 className="gallery-title">
+            Découvre mes <span className="accent-text">photos</span>
+          </h1>
+          <p className="gallery-subtitle">
+            Une collection de moments capturés avec passion et créativité
+          </p>
+        </div>
 
         {/* Filtres et tri */}
-        <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-10">
-          <div className="flex flex-wrap justify-center gap-2">
-            <button
-              onClick={() => setSelectedTag("all")}
-              className={`px-4 py-2 rounded-full font-medium transition-colors duration-300 ${
-                selectedTag === "all"
-                  ? "bg-[#e1af30] text-black"
-                  : "bg-gray-700 text-white hover:bg-[#e1af30] hover:text-black"
-              }`}>
-              Tout
-            </button>
-            <button
-              onClick={() => setSelectedTag("a la une")}
-              className={`px-4 py-2 rounded-full font-medium transition-colors duration-300 ${
-                selectedTag === "a la une"
-                  ? "bg-[#e1af30] text-black"
-                  : "bg-gray-700 text-white hover:bg-[#e1af30] hover:text-black"
-              }`}>
-              À la une
-            </button>
-            <button
-              onClick={() => setSelectedTag("recent")}
-              className={`px-4 py-2 rounded-full font-medium transition-colors duration-300 ${
-                selectedTag === "recent"
-                  ? "bg-[#e1af30] text-black"
-                  : "bg-gray-700 text-white hover:bg-[#e1af30] hover:text-black"
-              }`}>
-              Récent
-            </button>
-            <button
-              onClick={() => setSelectedTag("le plus aimé")}
-              className={`px-4 py-2 rounded-full font-medium transition-colors duration-300 ${
-                selectedTag === "le plus aimé"
-                  ? "bg-[#e1af30] text-black"
-                  : "bg-gray-700 text-white hover:bg-[#e1af30] hover:text-black"
-              }`}>
-              Plus aimés
-            </button>
+        <div className="gallery-controls">
+          <div className="filters-section">
+            <div className="section-label">
+              <Filter size={18} />
+              <span>Filtres</span>
+            </div>
+            <div className="tags-container">
+              <button
+                onClick={() => setSelectedTag("all")}
+                className={`tag ${selectedTag === "all" ? "active" : ""}`}>
+                <span>Tout voir</span>
+              </button>
+              {availableTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setSelectedTag(tag)}
+                  className={`tag ${selectedTag === tag ? "active" : ""}`}>
+                  <span>{tag}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">Trier par:</span>
+          <div className="sort-section">
+            <div className="section-label">
+              <ArrowUpDown size={18} />
+              <span>Trier par</span>
+            </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-gray-700 text-white px-3 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-[#e1af30]">
+              className="sort-select">
               <option value="default">Par défaut</option>
               <option value="likes">Plus aimés</option>
               <option value="recent">Plus récents</option>
@@ -204,65 +219,80 @@ export default function Galerie() {
         </div>
 
         {/* Galerie de photos */}
-        <div className="px-5 py-2 lg:px-32 lg:pt-12">
+        <div className="gallery-content">
           {sortedPhotos.length > 0 ? (
             <ResponsiveMasonry
-              columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
+              columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 1200: 4 }}>
               <Masonry gutter="1.5rem">
                 {sortedPhotos.map((photo) => (
                   <div
                     key={photo.id}
-                    className="overflow-hidden rounded-lg shadow-lg cursor-pointer transform transition-transform duration-300 hover:scale-105 relative group"
+                    className="gallery-item"
                     onClick={() => setSelectedPhoto(photo)}>
-                    <img
-                      src={getImageUrl(photo.url)}
-                      alt={photo.alt || "Photo sans titre"}
-                      className="block w-full h-auto object-cover"
-                      loading="lazy"
-                    />
+                    <div className="image-container">
+                      <img
+                        src={getImageUrl(photo.url)}
+                        alt={photo.alt || "Photo sans titre"}
+                        className="gallery-image"
+                        loading="lazy"
+                      />
 
-                    {/* Overlay avec informations */}
-                    <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-end p-4">
-                      <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100 w-full">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-white font-medium text-sm truncate">
+                      {/* Overlay avec informations */}
+                      <div className="image-overlay">
+                        <div className="image-info">
+                          <h3 className="image-title">
                             {photo.alt || "Sans titre"}
                           </h3>
                           <button
                             onClick={(e) => handleLike(photo.id!, e)}
-                            className="flex items-center gap-1 bg-black bg-opacity-50 rounded-full px-3 py-1 text-white hover:text-[#e1af30] transition-colors duration-300"
+                            className={`like-button ${
+                              photo.liked ? "liked" : ""
+                            }`}
                             aria-label="Aimer cette photo">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor">
-                              <path
-                                fillRule="evenodd"
-                                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span className="text-sm">{photo.likes || 0}</span>
+                            <Heart
+                              size={20}
+                              fill={photo.liked ? "currentColor" : "none"}
+                            />
+                            <span className="like-count">
+                              {photo.likes || 0}
+                            </span>
                           </button>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Badge pour les photos à la une */}
-                    {photo.tags && photo.tags.includes("a la une") && (
-                      <div className="absolute top-2 left-2 bg-[#e1af30] text-black text-xs font-bold px-2 py-1 rounded-full">
-                        À la une
-                      </div>
-                    )}
+                      {/* Badge pour les photos à la une */}
+                      {photo.tags && photo.tags.includes("à la une") && (
+                        <div className="featured-badge">
+                          <Flame size={14} />
+                          <span>À la une</span>
+                        </div>
+                      )}
+
+                      {/* Date de création */}
+                      {photo.created_at && (
+                        <div className="date-badge">
+                          <Calendar size={12} />
+                          <span>
+                            {new Date(photo.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </Masonry>
             </ResponsiveMasonry>
           ) : (
-            <p className="text-gray-500 text-center py-10">
-              Aucune photo trouvée pour cette catégorie.
-            </p>
+            <div className="empty-state">
+              <div className="empty-icon">📸</div>
+              <h3>Aucune photo trouvée</h3>
+              <p>Aucune photo ne correspond au filtre "{selectedTag}"</p>
+              <button
+                onClick={() => setSelectedTag("all")}
+                className="view-all-button">
+                Voir toutes les photos
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -271,98 +301,91 @@ export default function Galerie() {
       <Transition appear show={!!selectedPhoto} as={Fragment}>
         <Dialog
           as="div"
-          className="relative z-50"
+          className="modal-dialog"
           onClose={() => setSelectedPhoto(null)}>
           <Transition.Child
             as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-black bg-opacity-90" />
+            enter="modal-enter"
+            enterFrom="modal-enter-from"
+            enterTo="modal-enter-to"
+            leave="modal-leave"
+            leaveFrom="modal-leave-from"
+            leaveTo="modal-leave-to">
+            <div className="modal-backdrop" />
           </Transition.Child>
 
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <div className="modal-container">
+            <div className="modal-content">
               <Transition.Child
                 as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-gray-800 p-6 text-left align-middle shadow-xl transition-all relative">
+                enter="modal-enter"
+                enterFrom="modal-enter-from"
+                enterTo="modal-enter-to"
+                leave="modal-leave"
+                leaveFrom="modal-leave-from"
+                leaveTo="modal-leave-to">
+                <Dialog.Panel className="modal-panel">
                   <button
                     onClick={() => setSelectedPhoto(null)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-300 z-10 bg-black bg-opacity-50 rounded-full p-1">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-8 h-8">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    className="modal-close-button">
+                    <X size={24} />
                   </button>
 
                   {selectedPhoto && (
-                    <div className="relative">
+                    <div className="modal-image-container">
                       <img
                         src={getImageUrl(selectedPhoto.url)}
                         alt={selectedPhoto.alt || "Photo sans titre"}
-                        className="w-full h-auto rounded-lg"
+                        className="modal-image"
                       />
 
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6 rounded-b-lg">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-white text-xl font-semibold">
+                      <div className="modal-info">
+                        <div className="modal-header">
+                          <h3 className="modal-title">
                             {selectedPhoto.alt || "Sans titre"}
                           </h3>
                           <button
                             onClick={() => {
-                              // Simuler un événement pour handleLike
                               const mockEvent = {
                                 stopPropagation: () => {},
                               } as React.MouseEvent;
                               handleLike(selectedPhoto.id!, mockEvent);
-                              setGalleryPhotos((prev) => [...prev]); // Force update
                             }}
-                            className="flex items-center gap-2 bg-black bg-opacity-50 rounded-full px-4 py-2 text-white hover:text-[#e1af30] transition-colors duration-300">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-6 w-6"
-                              viewBox="0 0 20 20"
-                              fill="currentColor">
-                              <path
-                                fillRule="evenodd"
-                                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            className="modal-like-button">
+                            <Heart
+                              size={24}
+                              fill={
+                                (selectedPhoto.likes || 0) > 0
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
                             <span>{selectedPhoto.likes || 0}</span>
                           </button>
                         </div>
 
                         {selectedPhoto.tags &&
                           selectedPhoto.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-3">
+                            <div className="modal-tags">
                               {selectedPhoto.tags.map((tag, index) => (
-                                <span
-                                  key={index}
-                                  className="bg-[#e1af30] bg-opacity-20 text-[#e1af30] text-xs px-3 py-1 rounded-full">
+                                <span key={index} className="modal-tag">
                                   {tag}
                                 </span>
                               ))}
                             </div>
                           )}
+
+                        {selectedPhoto.created_at && (
+                          <div className="modal-date">
+                            <Calendar size={16} />
+                            <span>
+                              Publié le{" "}
+                              {new Date(
+                                selectedPhoto.created_at
+                              ).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
