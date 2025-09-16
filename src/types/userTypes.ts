@@ -11,11 +11,11 @@ export interface User {
   updated_at: string;
 }
 
-// @ts-ignore
 export enum UserType {
   ADMIN = "Admin",
-  USER = "Utilisateur",
   AGENT = "Agent",
+  CLIENT = "Client",
+  USER = "User",
 }
 
 export interface CreateUserRequest {

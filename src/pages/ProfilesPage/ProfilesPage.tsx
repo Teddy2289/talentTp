@@ -19,8 +19,29 @@ import {
   MessagesSquare,
 } from "lucide-react";
 
+// Données par défaut pour éviter les erreurs
+const defaultProfileData = {
+  about: {
+    model: {
+      id: 0,
+      prenom: "Prénom",
+      age: 0,
+      nationalite: "Nationalité",
+      passe_temps: "Passe-temps",
+      citation: "Citation par défaut",
+      domicile: "Domicile",
+      photo: "/default-avatar.jpg",
+      localisation: "Localisation",
+      created_at: "",
+      updated_at: "",
+    },
+    about_title: "À propos de moi",
+    custom_content: "Contenu personnalisé",
+  },
+};
+
 function ProfilesPage() {
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState(defaultProfileData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("info");
@@ -35,10 +56,28 @@ function ProfilesPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const result = await response.json();
-        setProfileData(result.data);
+
+        // Fusionner les données reçues avec les données par défaut
+        if (result.data) {
+          setProfileData({
+            ...defaultProfileData,
+            ...result.data,
+            about: {
+              ...defaultProfileData.about,
+              ...result.data.about,
+              model: {
+                ...defaultProfileData.about.model,
+                ...result.data.about?.model,
+              },
+            },
+          });
+        } else {
+          setProfileData(defaultProfileData);
+        }
       } catch (e) {
         console.error("Failed to fetch data:", e);
         setError("Impossible de charger les données du profil.");
+        setProfileData(defaultProfileData);
       } finally {
         setLoading(false);
       }
@@ -109,7 +148,9 @@ function ProfilesPage() {
   }
 
   const { model, about_title, custom_content } = profileData.about;
-  const imageUrl = `http://localhost:3000${model.photo}`;
+  const imageUrl = model.photo.startsWith("http")
+    ? model.photo
+    : `http://localhost:3000${model.photo}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#131313] to-[#0a0a0a] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -156,6 +197,10 @@ function ProfilesPage() {
                     className="w-full h-full object-cover"
                     src={imageUrl}
                     alt={model.prenom}
+                    onError={(e) => {
+                      e.target.src =
+                        "https://via.placeholder.com/400x500/1a1a1a/ffffff?text=Photo+non+disponible";
+                    }}
                   />
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
@@ -247,7 +292,7 @@ function ProfilesPage() {
                     {
                       icon: <Cake className="h-6 w-6" />,
                       label: "Âge",
-                      value: `${model.age} ans`,
+                      value: model.age ? `${model.age} ans` : "Non spécifié",
                     },
                     {
                       icon: <Globe className="h-6 w-6" />,

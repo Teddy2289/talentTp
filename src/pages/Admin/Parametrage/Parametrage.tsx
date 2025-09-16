@@ -27,71 +27,45 @@ const Parametrage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen  text-white p-2">
-      <div className="max-w-7xl mx-auto bg-gray-50 p-4">
-        <h1 className="text-3xl font-bold mb-8 text-black">Paramétrage</h1>
+    <div className="min-h-screen bg-gray-100 text-black p-4">
+      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg p-6">
+        {/* Titre principal */}
+        <h1 className="text-3xl font-bold mb-8 text-center lg:text-left">
+          Paramétrage
+        </h1>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Navigation */}
-          <div className="w-full lg:w-1/4 bg-pluto-dark-blue rounded-xl p-6 shadow-lg">
-            <h2 className="text-xl font-semibold mb-6 text-pluto-yellow">
+          <div className="w-full lg:w-1/4 bg-white rounded-xl p-6 shadow-md border border-gray-200">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">
               Sections
             </h2>
             <ul className="space-y-3">
-              <li
-                className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeSection === "general"
-                    ? "bg-[#e1af30] text-white shadow-md"
-                    : "bg-pluto-medium-blue hover:bg-pluto-light-blue"
-                }`}
-                onClick={() => setActiveSection("general")}>
-                <MoveRight className="inline-block mr-2" />
-                Général
-              </li>
-              <li
-                className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeSection === "logo"
-                    ? "bg-[#e1af30] text-white shadow-md"
-                    : "bg-pluto-medium-blue hover:bg-pluto-light-blue"
-                }`}
-                onClick={() => setActiveSection("logo")}>
-                <MoveRight className="inline-block mr-2" />
-                Logo du Site
-              </li>
-              <li
-                className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeSection === "accueil"
-                    ? "bg-[#e1af30] text-white shadow-md"
-                    : "bg-pluto-medium-blue hover:bg-pluto-light-blue"
-                }`}
-                onClick={() => setActiveSection("accueil")}>
-                <MoveRight className="inline-block mr-2" />
-                Accueil
-              </li>
-              <li
-                className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeSection === "galerie"
-                    ? "bg-[#e1af30] text-white shadow-md"
-                    : "bg-pluto-medium-blue hover:bg-pluto-light-blue"
-                }`}
-                onClick={() => setActiveSection("galerie")}>
-                <MoveRight className="inline-block mr-2" />
-                Galerie
-              </li>
-              <li
-                className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeSection === "apropos"
-                    ? "bg-[#e1af30] text-white shadow-md"
-                    : "bg-pluto-medium-blue hover:bg-pluto-light-blue"
-                }`}
-                onClick={() => setActiveSection("apropos")}>
-                <MoveRight className="inline-block mr-2" />À Propos
-              </li>
+              {[
+                { key: "general", label: "Général" },
+                // { key: "logo", label: "Logo du Site" },
+                { key: "accueil", label: "Accueil" },
+                { key: "galerie", label: "Galerie" },
+                { key: "apropos", label: "À Propos" },
+              ].map((item) => (
+                <li
+                  key={item.key}
+                  className={`p-4 rounded-lg cursor-pointer flex items-center transition-all duration-200 text-sm font-medium
+                  ${
+                    activeSection === item.key
+                      ? "bg-[#e1af30] text-white shadow-md"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                  onClick={() => setActiveSection(item.key)}>
+                  <MoveRight className="inline-block mr-2 w-4 h-4" />
+                  {item.label}
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Main Content */}
-          <div className="w-full lg:w-3/4 bg-pluto-dark-blue rounded-xl p-6 shadow-lg">
+          <div className="w-full lg:w-3/4 bg-white rounded-xl p-6 shadow-md border border-gray-200">
             {renderSection()}
           </div>
         </div>

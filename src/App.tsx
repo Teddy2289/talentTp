@@ -34,150 +34,179 @@ import CategoryFormViewWrapper from "./pages/Admin/Categories/CategoryFormViewWr
 import AdminCategories from "./pages/Admin/Categories/AdminCategories";
 import CategoryFormView from "./components/Ui/forms/CategoryFormView";
 import { SecurityWrapper } from "./components/SecurityWrapper/SecurityWrapper";
-import { SimpleSecurityWrapper } from "./components/SecurityWrapper/SimpleSecurityWrapper";
 import SecuritySettings from "./pages/Admin/Security/SecuritySettings";
 import { SecurityProvider } from "./contexts/SecurityContext";
+import { ConversationProvider } from "./contexts/ConversationContext";
+import { PaymentProvider } from "./contexts/PaymentContext";
+import PaymentPlansPage from "./pages/Plans/PaymentPlans";
 
 const App: React.FC = () => {
   return (
     <AlertProvider>
       <AuthProvider>
         <SecurityProvider>
-          <Router>
-            <div className="App">
-              <Routes>
-                {/* Routes publiques (non accessibles quand connecté) */}
-                <Route
-                  path="/login"
-                  element={
-                    <ProtectedRoute requireAuth={false}>
-                      <Login />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/register"
-                  element={
-                    <ProtectedRoute requireAuth={false}>
-                      <Register />
-                    </ProtectedRoute>
-                  }
-                />
+          <ConversationProvider>
+            <PaymentProvider>
+              <Router>
+                <div className="App">
+                  <Routes>
+                    {/* Routes publiques (non accessibles quand connecté) */}
+                    <Route
+                      path="/login"
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <Login />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/register"
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <Register />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Page d'accueil publique */}
-                <Route
-                  path="/"
-                  element={
-                    <SecurityWrapper showViolationPage={false}>
-                      <FrontLayout>
-                        <Home />
-                      </FrontLayout>
-                    </SecurityWrapper>
-                  }
-                />
+                    {/* Page d'accueil publique */}
+                    <Route
+                      path="/"
+                      element={
+                        <SecurityWrapper showViolationPage={false}>
+                          <FrontLayout>
+                            <Home />
+                          </FrontLayout>
+                        </SecurityWrapper>
+                      }
+                    />
 
-                {/* Page d'erreur 403 */}
-                <Route path="/unauthorized" element={<Unauthorized />} />
+                    {/* Page d'erreur 403 */}
+                    <Route path="/unauthorized" element={<Unauthorized />} />
 
-                {/* Routes front protégées */}
-                <Route
-                  path="/chat"
-                  element={
-                    <ProtectedRoute requireAuth={true}>
-                      <SecurityWrapper showViolationPage={false}>
+                    {/* Routes front protégées */}
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute requireAuth={true}>
+                          <SecurityWrapper showViolationPage={false}>
+                            <FrontLayout>
+                              <ChatPage />
+                            </FrontLayout>
+                          </SecurityWrapper>
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Nouvelle route pour les plans de paiement */}
+                    <Route
+                      path="/plans"
+                      element={
+                        <ProtectedRoute requireAuth={true}>
+                          <SecurityWrapper showViolationPage={false}>
+                            <FrontLayout>
+                              <PaymentPlansPage />
+                            </FrontLayout>
+                          </SecurityWrapper>
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    <Route
+                      path="/apropos"
+                      element={
                         <FrontLayout>
-                          <ChatPage />
+                          <Apropos />
                         </FrontLayout>
-                      </SecurityWrapper>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/apropos"
-                  element={
-                    <FrontLayout>
-                      <Apropos />
-                    </FrontLayout>
-                  }
-                />
+                      }
+                    />
 
-                {/* Routes admin avec vérification de rôle */}
-                <Route
-                  path="/admin/*"
-                  element={
-                    <ProtectedRoute requireAuth={true} requiredRole="Admin">
-                      <AdminLayout>
-                        <Routes>
-                          <Route
-                            path="dashboard"
-                            element={<AdminDashboard />}
-                          />
-                          {/* Routes de gestion des utilisateurs */}
-                          <Route path="users" element={<AdminUsers />} />
-                          <Route path="users/create" element={<UserCreate />} />
-                          <Route path="users/edit/:id" element={<UserEdit />} />
-                          {/* Model */}
-                          <Route path="models" element={<Model />} />
-                          <Route
-                            path="models/create"
-                            element={<ModelFormView />}
-                          />
-                          <Route
-                            path="models/edit/:id"
-                            element={<ModelFormViewWrapper />}
-                          />
-                          {/* Categorie */}
-                          <Route
-                            path="categories"
-                            element={<AdminCategories />}
-                          />
-                          <Route
-                            path="categories/create"
-                            element={<CategoryFormView />}
-                          />
-                          <Route
-                            path="categories/edit/:id"
-                            element={<CategoryFormViewWrapper />}
-                          />
+                    {/* Routes admin avec vérification de rôle */}
+                    <Route
+                      path="/admin/*"
+                      element={
+                        <ProtectedRoute requireAuth={true} requiredRole="Admin">
+                          <AdminLayout>
+                            <Routes>
+                              <Route
+                                path="dashboard"
+                                element={<AdminDashboard />}
+                              />
+                              {/* Routes de gestion des utilisateurs */}
+                              <Route path="users" element={<AdminUsers />} />
+                              <Route
+                                path="users/create"
+                                element={<UserCreate />}
+                              />
+                              <Route
+                                path="users/edit/:id"
+                                element={<UserEdit />}
+                              />
+                              {/* Model */}
+                              <Route path="models" element={<Model />} />
+                              <Route
+                                path="models/create"
+                                element={<ModelFormView />}
+                              />
+                              <Route
+                                path="models/edit/:id"
+                                element={<ModelFormViewWrapper />}
+                              />
+                              {/* Categorie */}
+                              <Route
+                                path="categories"
+                                element={<AdminCategories />}
+                              />
+                              <Route
+                                path="categories/create"
+                                element={<CategoryFormView />}
+                              />
+                              <Route
+                                path="categories/edit/:id"
+                                element={<CategoryFormViewWrapper />}
+                              />
 
-                          {/* Routes de gestion des photos */}
-                          <Route path="photo" element={<PhotoPage />} />
-                          <Route
-                            path="photo/create"
-                            element={<CreatePhoto />}
-                          />
-                          <Route
-                            path="photo/edit/:id"
-                            element={<UpdatePhoto />}
-                          />
-                          {/* Route de paramétrage */}
+                              {/* Routes de gestion des photos */}
+                              <Route path="photo" element={<PhotoPage />} />
+                              <Route
+                                path="photo/create"
+                                element={<CreatePhoto />}
+                              />
+                              <Route
+                                path="photo/edit/:id"
+                                element={<UpdatePhoto />}
+                              />
+                              {/* Route de paramétrage */}
 
-                          <Route
-                            path="security"
-                            element={<SecuritySettings />}
-                          />
+                              <Route
+                                path="security"
+                                element={<SecuritySettings />}
+                              />
 
-                          <Route path="parametrage" element={<Parametrage />} />
+                              <Route
+                                path="parametrage"
+                                element={<Parametrage />}
+                              />
 
-                          <Route
-                            path=""
-                            element={<Navigate to="dashboard" replace />}
-                          />
-                        </Routes>
-                      </AdminLayout>
-                    </ProtectedRoute>
-                  }
-                />
+                              <Route
+                                path=""
+                                element={<Navigate to="dashboard" replace />}
+                              />
+                            </Routes>
+                          </AdminLayout>
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Route de fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </div>
-          </Router>
+                    {/* Route de fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </div>
+              </Router>
+            </PaymentProvider>
+          </ConversationProvider>
         </SecurityProvider>
       </AuthProvider>
     </AlertProvider>
   );
 };
-
 export default App;

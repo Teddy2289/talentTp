@@ -6,6 +6,7 @@ import { categoryServiceCrud } from "../../../services/categoryServiceCrud";
 import type { CreateModel, UpdateModel, Model } from "../../../types/model";
 import type { Categorie } from "../../../types/category";
 import { ArrowLeftIcon } from "lucide-react";
+import { useAlert } from "../../../contexts/AlertContext";
 
 interface Props {
   modelId?: number;
@@ -40,7 +41,7 @@ export default function ModelFormView({ modelId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingModel, setEditingModel] = useState<Model | null>(null);
-
+  const { showAlert } = useAlert();
   // Charger les catégories
   useEffect(() => {
     const fetchCategories = async () => {
@@ -71,6 +72,7 @@ export default function ModelFormView({ modelId }: Props) {
       setLoading(true);
       try {
         const model = await modelServiceCrud.getById(modelId);
+        setEditingModel(model); // ✅ Ajouté ici
         setForm({
           prenom: model.prenom || "",
           nationalite: model.nationalite || "",
@@ -82,12 +84,18 @@ export default function ModelFormView({ modelId }: Props) {
           citation: model.citation || "",
           domicile: model.domicile || "",
           localisation: model.localisation || "",
-          // Convertir en nombres
           categoryIds: model.categories
             ? model.categories.map((c) => Number(c.id))
             : [],
         });
-        // ... reste du code
+
+        // ⚡ Facultatif : pré-sélectionner les catégories dans react-select
+        setSelectedCategories(
+          model.categories?.map((c) => ({
+            value: Number(c.id),
+            label: c.name,
+          })) || []
+        );
       } catch (err) {
         console.error("Erreur lors de la récupération du modèle :", err);
         setError("Impossible de charger le modèle");
@@ -154,8 +162,10 @@ export default function ModelFormView({ modelId }: Props) {
     try {
       if (editingModel) {
         await modelServiceCrud.update(editingModel.id, form, photo);
+        showAlert("success", "Modèle mis à jour avec succès !");
       } else {
         await modelServiceCrud.create(form as CreateModel, photo);
+        showAlert("success", "Modèle créé avec succès !");
       }
       navigate("/admin/models");
     } catch (err) {

@@ -1,343 +1,457 @@
-import React, { useState, useEffect, useRef, type FormEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useConversation } from "../../contexts/ConversationContext";
+import { useAIChat } from "../../contexts/useAIChat";
+import { useAuth } from "../../contexts/AuthContext";
+import { Link } from "react-router-dom";
+import {
+  Plus,
+  Search,
+  Phone,
+  Video,
+  MoreHorizontal,
+  Smile,
+  Paperclip,
+  Send,
+  MessageCircle,
+  User,
+  Loader,
+  Clock,
+} from "lucide-react";
+import { modelService } from "../../services/modelService";
+import { settingsApi } from "../../core/settingsApi";
+import { conversationService } from "../../services/chatService";
 
 // Types
-interface Message {
-  id: number;
-  text: string;
-  sender: "bot" | "human" | "user" | "system";
-  timestamp: string;
-}
-
-interface ModelData {
+interface Model {
   id: number;
   prenom: string;
-  age: number;
-  nationalite: string;
-  passe_temps: string;
-  citation: string;
-  domicile: string;
+  nom?: string;
+  photo?: string;
+}
+
+interface Client {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  type: string;
+  Conversation: Conversation[];
+}
+
+interface Message {
+  id: number;
+  conversationId: number;
+  senderId: number;
+  isFromModel: boolean;
+  content: string;
+  created_at: string;
+  sender: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    type: string;
+  };
+}
+
+interface Conversation {
+  id: number;
+  modelId: number;
+  clientId: number;
+  status: string;
+  is_premium: boolean;
+  paymentId: number | null;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+  messages: Message[];
+  model?: Model;
+  client?: Client;
 }
 
 const ChatPage: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { user } = useAuth();
+  const {
+    conversations,
+    currentConversation,
+    createConversation,
+    getConversation,
+    incrementMessage,
+    loading: convLoading,
+  } = useConversation();
+  const { messages, isLoading, sendMessage } = useAIChat();
+
   const [inputMessage, setInputMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [modelData, setModelData] = useState<ModelData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [botReplyCount, setBotReplyCount] = useState(0);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    number | null
+  >(null);
+  const [model, setModel] = useState<Model | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [loadingModel, setLoadingModel] = useState(true);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [conversationMessages, setConversationMessages] = useState<Message[]>(
+    []
+  );
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll automatique
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  useEffect(scrollToBottom, [messages, isTyping]);
+  }, []);
 
-  // Fonction utilitaire pour ajouter un message
-  const addMessage = (text: string, sender: Message["sender"]) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        text,
-        sender,
-        id: Date.now() + Math.random(),
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
-  };
-
-  // Charger données modèle
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    const fetchModelData = async () => {
+    scrollToBottom();
+  }, [messages, conversationMessages, scrollToBottom]);
+
+  // 👉 Charger le modèle depuis les settings
+  useEffect(() => {
+    const fetchModel = async () => {
       try {
-        setLoading(true);
-        const res = await fetch("http://localhost:3000/api/settings/frontend");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
-        const model = data?.data?.general?.model;
-
-        if (data.success && model) {
-          setModelData(model);
-          timer = setTimeout(() => {
-            addMessage(
-              `👋 Bonjour ! Je suis ${model.prenom}, prêt(e) à discuter avec toi ?`,
-              "bot"
-            );
-          }, 1200);
-        } else {
-          throw new Error("Modèle introuvable");
+        setLoadingModel(true);
+        const response = await settingsApi.getFrontendSettings();
+        const frontendSettings = response.data.data;
+        if (frontendSettings?.general?.model) {
+          setModel(frontendSettings.general.model);
         }
-      } catch {
-        timer = setTimeout(() => {
-          addMessage(
-            "👋 Bonjour ! Prêt(e) à discuter avec ton compagnon virtuel ?",
-            "bot"
-          );
-        }, 1200);
+      } catch (error) {
+        console.error("Erreur récupération settings:", error);
       } finally {
-        setLoading(false);
+        setLoadingModel(false);
+      }
+    };
+    fetchModel();
+  }, []);
+
+  // 👉 Charger les clients du modèle unique
+  useEffect(() => {
+    const fetchClients = async () => {
+      if (!model?.id) return;
+      try {
+        setLoadingClients(true);
+        const clientsData = await modelService.getModelClients(model.id);
+        setClients(clientsData);
+      } catch (error) {
+        console.error("Erreur récupération clients:", error);
+      } finally {
+        setLoadingClients(false);
+      }
+    };
+    fetchClients();
+  }, [model]);
+
+  // 👉 Charger les messages d'une conversation
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!selectedConversationId) return;
+
+      try {
+        setLoadingMessages(true);
+        const response = await conversationService.getConversationMessages(
+          selectedConversationId
+        );
+        if (response.success) {
+          setConversationMessages(response.data);
+        }
+      } catch (error) {
+        console.error("Erreur récupération messages:", error);
+      } finally {
+        setLoadingMessages(false);
       }
     };
 
-    fetchModelData();
-    return () => clearTimeout(timer);
-  }, []);
+    fetchMessages();
+  }, [selectedConversationId]);
 
-  // API Chat
-  const handleSendMessage = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  const handleSelectConversation = async (id: number) => {
+    setSelectedConversationId(id);
+    await getConversation(id);
+  };
 
-    addMessage(inputMessage, "user");
-    const messageText = inputMessage;
-    setInputMessage("");
+  const handleNewConversation = async () => {
+    if (!user || !model?.id) return;
+    const newConv = await createConversation(user.id, model.id);
+    if (newConv?.id) setSelectedConversationId(newConv.id);
+  };
 
-    // Vérifier limite gratuite
-    if (botReplyCount >= 2) {
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        addMessage("💎 Abonnez-vous pour continuer la discussion !", "system");
-      }, 1500);
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!inputMessage.trim() || !user || !currentConversation) return;
+
+    const response = await sendMessage(
+      inputMessage,
+      currentConversation.model,
+      user.id
+    );
+
+    if (response?.requiresPayment) {
+      setInputMessage("");
       return;
     }
 
-    setIsTyping(true);
-    try {
-      const response = await fetch("http://localhost:3000/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: messageText,
-          history: messages.map((m) => ({
-            role: m.sender === "user" ? "user" : "assistant",
-            content: m.text,
-          })),
-          modelData,
-        }),
-      });
+    await incrementMessage(currentConversation.id);
+    setInputMessage("");
 
-      const data = await response.json();
-      if (data.success) {
-        addMessage(data.reply, "human");
-        setBotReplyCount((prev) => prev + 1);
-
-        if (botReplyCount === 1) {
-          setTimeout(() => {
-            addMessage("🔒 Passez en premium pour plus d'exper .", "system");
-          }, 800);
-        }
-      } else {
-        addMessage(
-          "❌ Une erreur est survenue, réessayez plus tard.",
-          "system"
-        );
+    // Recharger les messages après envoi
+    if (selectedConversationId) {
+      const updatedMessages = await conversationService.getConversationMessages(
+        selectedConversationId
+      );
+      if (updatedMessages.success) {
+        setConversationMessages(updatedMessages.data);
       }
-    } catch {
-      addMessage("⚠️ Service indisponible.", "system");
-    } finally {
-      setIsTyping(false);
     }
   };
 
-  // Utilitaires (avatars & noms)
-  const getSenderName = (sender: Message["sender"]) => {
-    if (sender === "human") return modelData?.prenom || "Léa";
-    if (sender === "user") return "Vous";
-    return "Système";
+  const handleSelectClient = (clientId: number) => {
+    setSelectedClientId(clientId);
+    const client = clients.find((c) => c.id === clientId);
+    if (client && client.Conversation.length > 0) {
+      setSelectedConversationId(client.Conversation[0].id);
+      getConversation(client.Conversation[0].id);
+    }
   };
 
-  const getAvatar = (sender: Message["sender"]) => {
-    const circle = (bg: string, content: React.ReactNode) => (
-      <div
-        className={`w-10 h-10 rounded-full ${bg} flex items-center justify-center text-white font-semibold text-lg`}>
-        {content}
-      </div>
-    );
-
-    switch (sender) {
-      case "human":
-        return circle(
-          "bg-gradient-to-r from-purple-500 to-pink-500",
-          modelData?.prenom.charAt(0) || "L"
-        );
-      case "user":
-        return circle("bg-gradient-to-r from-blue-500 to-cyan-400", "V");
-      case "system":
-        return circle("bg-gradient-to-r from-gray-600 to-gray-400", "⚙️");
-      default:
-        return circle("bg-gradient-to-r from-green-500 to-emerald-400", "S");
-    }
+  // Formater la date pour l'affichage
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100 flex flex-col items-center py-20">
-      {/* Hero */}
-      <motion.div
-        className="text-center max-w-2xl mb-10"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-4xl md:text-5xl font-light leading-tight">
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e1af30] via-[#f3c754] to-[#e1af30]">
-            Discutez avec {modelData?.prenom || "notre modèle"}
-          </span>
-          <br />
-          <span className="text-gray-300 text-2xl md:text-3xl">
-            Des conversations authentiques, 24/7
-          </span>
-        </h1>
-        {modelData && (
-          <p className="text-gray-400 mt-4">
-            {modelData.age} ans • {modelData.nationalite} • {modelData.domicile}
-          </p>
-        )}
-      </motion.div>
-
-      {/* Chat */}
-      <div className="w-full max-w-3xl h-[80vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl bg-gray-900/80 backdrop-blur-md border border-gray-800/50">
-        {/* Header */}
-        <motion.div
-          className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700/50 p-5 flex items-center justify-between"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-4">
-            {getAvatar("human")}
-            <div>
-              <h2 className="font-semibold text-lg text-white">
-                {modelData?.prenom || "Léa"}
-              </h2>
-              <p className="text-gray-400 text-sm">
-                {botReplyCount < 2 ? "En ligne" : "Premium requis"}
-              </p>
-            </div>
+    <div className="container h-[calc(80vh-5rem)] mt-5 bg-gray-900 rounded-xl shadow-lg overflow-hidden text-gray-100">
+      <div className="flex h-full">
+        {/* Sidebar modèle unique */}
+        <div className="w-1/4 border-r border-gray-700 flex flex-col bg-gray-800">
+          <div className="p-4 border-b border-gray-700">
+            <h3 className="font-semibold text-lg flex items-center">
+              Modèle sélectionné
+            </h3>
           </div>
-          {botReplyCount >= 2 && (
-            <div className="bg-amber-500/20 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30">
-              Premium requis
-            </div>
-          )}
-        </motion.div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900/70 to-gray-900/50 p-5 space-y-4 scrollbar-thin scrollbar-thumb-gray-700">
-          <AnimatePresence initial={false}>
-            {messages.map((m) => (
-              <motion.div
-                key={m.id}
-                className={`flex ${
-                  m.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}>
-                {m.sender !== "user" && (
-                  <div className="mr-3 self-end">{getAvatar(m.sender)}</div>
-                )}
-                <div
-                  className={`max-w-xs lg:max-w-md rounded-2xl px-4 py-3 shadow-md ${
-                    m.sender === "user"
-                      ? "bg-gradient-to-r from-[#e1af30] to-[#f3c754] text-gray-900 ml-10"
-                      : m.sender === "system"
-                      ? "bg-gradient-to-r from-purple-900/70 to-purple-800/70 text-gray-100 border border-purple-700/30"
-                      : "bg-gray-800/90 text-gray-100 mr-10"
-                  }`}>
-                  <p className="text-sm leading-relaxed">{m.text}</p>
-                  <div
-                    className={`flex justify-between mt-2 text-xs ${
-                      m.sender === "user" ? "text-gray-800" : "text-gray-400"
-                    }`}>
-                    <span>{getSenderName(m.sender)}</span>
-                    <span>{m.timestamp}</span>
-                  </div>
+          <div className="flex-1 flex items-center justify-center">
+            {loadingModel ? (
+              <Loader className="animate-spin" />
+            ) : model ? (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl">
+                  {model.prenom?.charAt(0) || "M"}
                 </div>
-                {m.sender === "user" && (
-                  <div className="ml-3 self-end">{getAvatar("user")}</div>
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {isTyping && (
-            <motion.div
-              className="flex justify-start"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}>
-              <div className="mr-3 self-end">{getAvatar("human")}</div>
-              <div className="bg-gray-800/90 rounded-2xl px-4 py-3 mr-10">
-                <div className="flex space-x-1.5">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-2 h-2 bg-gray-400 rounded-full"
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        delay: i * 0.2,
-                      }}
-                    />
-                  ))}
-                </div>
+                <h4 className="mt-2 font-medium">
+                  {model.prenom} {model.nom}
+                </h4>
               </div>
-            </motion.div>
-          )}
-          <div ref={messagesEndRef} className="h-6" />
+            ) : (
+              <p className="text-gray-400">Aucun modèle configuré</p>
+            )}
+          </div>
         </div>
 
-        {/* Input */}
-        <motion.form
-          onSubmit={handleSendMessage}
-          className="bg-gradient-to-r from-gray-900 to-gray-800 border-t border-gray-700/30 p-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}>
-          <div className="flex gap-3 items-center">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={
-                botReplyCount >= 2
-                  ? "Abonnez-vous pour continuer..."
-                  : "Écrivez votre message..."
-              }
-              disabled={botReplyCount >= 2}
-              className="flex-1 bg-gray-800/50 border border-gray-700/30 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#e1af30]/30 placeholder-gray-500 text-sm disabled:opacity-50"
-            />
+        {/* Sidebar des clients avec leurs conversations */}
+        <div className="w-1/4 border-r border-gray-700 flex flex-col bg-gray-800">
+          <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+            <h3 className="font-semibold text-lg flex items-center">
+              <User className="mr-2" size={20} /> Clients
+            </h3>
             <button
-              type="submit"
-              disabled={!inputMessage.trim() || botReplyCount >= 2}
-              className="bg-gradient-to-r from-[#e1af30] to-[#f3c754] text-gray-900 rounded-xl w-12 h-12 flex items-center justify-center disabled:opacity-40">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                />
-              </svg>
+              onClick={handleNewConversation}
+              title="Nouvelle conversation"
+              className="text-gray-400 hover:text-gray-200">
+              <Plus size={20} />
             </button>
           </div>
 
-          {botReplyCount >= 2 && (
-            <div className="mt-3 text-center">
-              <button
-                type="button"
-                className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-5 py-2 rounded-full">
-                S'abonner au Premium
+          <div className="flex-1 overflow-y-auto">
+            {loadingClients ? (
+              <div className="p-4 flex justify-center">
+                <Loader className="animate-spin" />
+              </div>
+            ) : clients.length === 0 ? (
+              <div className="p-4 text-gray-400">Aucun client</div>
+            ) : (
+              clients.map((client) => (
+                <div key={client.id} className="border-b border-gray-700">
+                  <div
+                    onClick={() => handleSelectClient(client.id)}
+                    className={`p-3 cursor-pointer hover:bg-gray-700 ${
+                      selectedClientId === client.id ? "bg-gray-700" : ""
+                    }`}>
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
+                        {client.first_name?.charAt(0) || "C"}
+                      </div>
+                      <div className="ml-3 flex-1 min-w-0">
+                        <h4 className="font-medium truncate">
+                          {client.first_name} {client.last_name}
+                        </h4>
+                        <p className="text-sm text-gray-400 truncate">
+                          {client.email}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {client.Conversation.length} conversation(s)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Liste des conversations du client */}
+                  {selectedClientId === client.id &&
+                    client.Conversation.map((conversation) => (
+                      <div
+                        key={conversation.id}
+                        onClick={() =>
+                          handleSelectConversation(conversation.id)
+                        }
+                        className={`pl-12 pr-3 py-2 cursor-pointer hover:bg-gray-700 text-sm ${
+                          selectedConversationId === conversation.id
+                            ? "bg-yellow-900"
+                            : ""
+                        }`}>
+                        <div className="flex justify-between items-center">
+                          <span className="truncate">
+                            Conversation #{conversation.id}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {conversation.message_count} messages
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400 flex items-center mt-1">
+                          <Clock size={12} className="mr-1" />
+                          {new Date(
+                            conversation.updated_at
+                          ).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Section de chat principale */}
+        <div className="flex-1 flex flex-col">
+          <div className="px-4 py-3 flex justify-between items-center border-b border-gray-700 bg-gray-800">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center font-bold text-lg">
+                {currentConversation?.model?.prenom?.charAt(0) || "S"}
+              </div>
+              <div className="ml-3">
+                <h2 className="font-semibold">
+                  {currentConversation?.model?.prenom ||
+                    "Sélectionnez une conversation"}
+                </h2>
+                <p className="text-xs text-gray-400">
+                  {selectedConversationId ? "En ligne" : "Hors ligne"}
+                </p>
+              </div>
+            </div>
+            <div className="flex space-x-4 text-gray-400">
+              <button title="Appel vocal" className="hover:text-gray-200">
+                <Phone size={20} />
+              </button>
+              <button title="Appel vidéo" className="hover:text-gray-200">
+                <Video size={20} />
+              </button>
+              <button title="Plus d'options" className="hover:text-gray-200">
+                <MoreHorizontal size={20} />
               </button>
             </div>
-          )}
-        </motion.form>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-900">
+            {loadingMessages ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader className="animate-spin" />
+              </div>
+            ) : conversationMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-4 shadow-md">
+                  <MessageCircle size={48} className="text-yellow-600" />
+                </div>
+                <p className="text-lg font-medium">
+                  {selectedConversationId
+                    ? "Envoyez un message pour commencer"
+                    : "Sélectionnez une conversation"}
+                </p>
+                <p className="text-sm mt-2 max-w-md">
+                  Les messages sont sécurisés avec un chiffrement de bout en
+                  bout
+                </p>
+              </div>
+            ) : (
+              conversationMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex mb-4 ${
+                    msg.isFromModel ? "justify-start" : "justify-end"
+                  }`}>
+                  <div
+                    className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-2xl p-3 ${
+                      msg.isFromModel
+                        ? "bg-gray-800 text-gray-100 shadow-sm"
+                        : "bg-yellow-600 text-gray-100 font-medium"
+                    }`}>
+                    <div className="text-sm">{msg.content}</div>
+                    <div className="text-xs text-gray-400 flex items-center justify-end mt-1">
+                      <Clock size={10} className="mr-1" />
+                      {formatTime(msg.created_at)}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            {isLoading && (
+              <div className="flex justify-start mb-2">
+                <div className="bg-gray-800 text-gray-100 rounded-2xl p-3 max-w-xs md:max-w-md shadow-sm">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
+                    <div
+                      className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}></div>
+                    <div
+                      className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.4s" }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="p-3 flex items-center bg-gray-800">
+            <button
+              title="Emoji"
+              className="p-2 text-gray-400 hover:text-gray-200 mx-1">
+              <Smile size={20} />
+            </button>
+            <button
+              title="Pièce jointe"
+              className="p-2 text-gray-400 hover:text-gray-200 mx-1">
+              <Paperclip size={20} />
+            </button>
+            <form onSubmit={handleSendMessage} className="flex-1 flex mx-2">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder={
+                  selectedConversationId
+                    ? "Tapez un message"
+                    : "Sélectionnez une conversation"
+                }
+                disabled={isLoading || !selectedConversationId}
+                className="flex-1 px-4 py-2 bg-gray-700 rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50 text-gray-100"
+              />
+            </form>
+            <button
+              onClick={handleSendMessage}
+              disabled={
+                isLoading || !inputMessage.trim() || !selectedConversationId
+              }
+              className="p-2 bg-yellow-600 text-white rounded-full hover:bg-yellow-700 disabled:opacity-50 transition-colors mx-1">
+              <Send size={20} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

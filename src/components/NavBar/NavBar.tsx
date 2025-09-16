@@ -30,11 +30,38 @@ interface ApiData {
   };
 }
 
+// Données par défaut pour éviter les erreurs
+const defaultSiteData: ApiData = {
+  success: false,
+  data: {
+    general: {
+      site_title: "Mon Site",
+      site_subtitle: "Bienvenue sur mon site",
+      show_navbar: true,
+      social_title: "Suivez-moi",
+      social_links: [],
+      model: {
+        id: 0,
+        prenom: "Mon Site",
+        age: 0,
+        nationalite: "",
+        passe_temps: "",
+        citation: "",
+        domicile: "",
+        photo: "",
+        localisation: "",
+        created_at: "",
+        updated_at: "",
+      },
+    },
+  },
+};
+
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [siteData, setSiteData] = useState<ApiData | null>(null);
+  const [siteData, setSiteData] = useState<ApiData>(defaultSiteData);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,10 +73,32 @@ const NavBar = () => {
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/settings/frontend`
         );
-        const data: ApiData = await response.json();
-        setSiteData(data);
+        // Vérifier si la réponse est valide
+        if (response.ok) {
+          const data: ApiData = await response.json();
+          // Fusionner les données reçues avec les données par défaut
+          setSiteData({
+            ...defaultSiteData,
+            ...data,
+            data: {
+              general: {
+                ...defaultSiteData.data.general,
+                ...data.data?.general,
+                model: {
+                  ...defaultSiteData.data.general.model,
+                  ...data.data?.general?.model,
+                },
+              },
+            },
+          });
+        } else {
+          // En cas d'erreur, utiliser les données par défaut
+          setSiteData(defaultSiteData);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error);
+        // En cas d'erreur, utiliser les données par défaut
+        setSiteData(defaultSiteData);
       } finally {
         setLoading(false);
       }
@@ -196,17 +245,17 @@ const NavBar = () => {
                 </div>
               </div>
               <span className="text-white font-bold text-2xl hidden sm:block logo-font">
-                {siteData?.data.general.model.prenom
+                {siteData?.data?.general?.model?.prenom
                   ? siteData.data.general.model.prenom.split(" ")[0]
                   : "Mon"}
                 <span className="text-[#e1af30]">
-                  {siteData?.data.general.model.prenom
+                  {siteData?.data?.general?.model?.prenom
                     ? " " +
                       siteData.data.general.model.prenom
                         .split(" ")
                         .slice(1)
                         .join(" ")
-                    : "  Site"}
+                    : " Site"}
                 </span>
               </span>
             </div>
@@ -251,10 +300,12 @@ const NavBar = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#e1af30] to-[#f3c754] flex items-center justify-center text-sm font-bold">
-                    {user.first_name?.charAt(0)}
-                    {user.last_name?.charAt(0)}
+                    {user.first_name?.charAt(0) || "U"}
+                    {user.last_name?.charAt(0) || ""}
                   </div>
-                  <span className="text-sm font-medium">{user.first_name}</span>
+                  <span className="text-sm font-medium">
+                    {user.first_name || "Utilisateur"}
+                  </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${
                       isProfileDropdownOpen ? "rotate-180" : ""
@@ -282,10 +333,11 @@ const NavBar = () => {
                       transition={{ duration: 0.2 }}>
                       <div className="p-4 border-b border-gray-700/30">
                         <p className="text-white font-medium text-sm">
-                          {user.first_name} {user.last_name}
+                          {user.first_name || "Utilisateur"}{" "}
+                          {user.last_name || ""}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          {user.email}
+                          {user.email || "Email non disponible"}
                         </p>
                       </div>
                       <div className="p-2">
@@ -394,7 +446,7 @@ const NavBar = () => {
                   {user ? (
                     <>
                       <div className="text-center text-gray-400 text-sm">
-                        Connecté en tant que {user.email}
+                        Connecté en tant que {user.email || "utilisateur"}
                       </div>
                       {user.type === "admin" && (
                         <button

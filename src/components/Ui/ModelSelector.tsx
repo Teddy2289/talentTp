@@ -23,7 +23,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       onChange={(e) =>
         onChange(e.target.value ? parseInt(e.target.value) : undefined)
       }
-      className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange">
+      className="w-full p-3 rounded-lg bg-white border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange">
       <option value="">Aucun modèle sélectionné</option>
       {models.map((model) => (
         <option key={model.id} value={model.id}>

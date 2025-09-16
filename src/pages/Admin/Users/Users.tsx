@@ -105,13 +105,10 @@ const AdminUsers: React.FC = () => {
       <div className="bg-gray-100 p-6 rounded-lg shadow-md mb-8 text-black">
         {/* ... votre code pour les filtres ... */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   {" "}
           <div>
-                       {" "}
             <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Rechercher            {" "}
+              Rechercher
             </label>
-                       {" "}
             <input
               type="text"
               value={searchTerm}
@@ -119,42 +116,34 @@ const AdminUsers: React.FC = () => {
               placeholder="Email, prénom, nom..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
-                     {" "}
           </div>
-                   {" "}
           <div>
-                       {" "}
             <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Type d'utilisateur            {" "}
+              Type d'utilisater
             </label>
-                       {" "}
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                            <option value="all">Tous</option>             {" "}
-              <option value={UserType.ADMIN}>Administrateur</option>           
-                <option value={UserType.USER}>Utilisateur</option>           {" "}
+              <option value="all">Tous</option>
+              <option value={UserType.ADMIN}>Administrateur</option>
+              <option value={UserType.USER}>Utilisateur</option>
             </select>
-                     {" "}
           </div>
-                   {" "}
+
           <div className="flex items-end space-x-2">
-                       {" "}
             <button
               onClick={handleSearch}
               className="bg-yellow-600 text-white px-6 py-2 rounded-md hover:bg-yellow-700 transition-colors">
-                            Rechercher            {" "}
+              Rechercher
             </button>
-                       {" "}
+
             <button
               onClick={resetFilters}
               className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 transition-colors">
-                            Réinitialiser            {" "}
+              Réinitialiser
             </button>
-                     {" "}
           </div>
-                 {" "}
         </div>
       </div>
 
@@ -163,31 +152,26 @@ const AdminUsers: React.FC = () => {
         <table className="w-full">
           {/* ... votre thead ... */}
           <thead className="bg-gray-200">
-                       {" "}
             <tr>
-                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                Utilisateur              {" "}
+                Utilisateur
               </th>
-                           {" "}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                Type              {" "}
+                Type
               </th>
-                           {" "}
+
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                Statut              {" "}
+                Statut
               </th>
-                           {" "}
+
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                Date de création              {" "}
+                Date de création
               </th>
-                           {" "}
+
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                Actions              {" "}
+                Actions
               </th>
-                         {" "}
             </tr>
-                     {" "}
           </thead>
           <tbody className="divide-y divide-gray-200">
             {/* ✨ Itérer sur la liste paginée */}
@@ -195,18 +179,14 @@ const AdminUsers: React.FC = () => {
               <tr key={user.id} className="hover:bg-gray-50">
                 {/* ... votre code pour les <td> ... */}
                 <td className="px-6 py-4">
-                                   {" "}
                   <div className="font-medium">
-                                        {user.first_name} {user.last_name}     
-                               {" "}
+                    {user.first_name} {user.last_name}
                   </div>
-                                   {" "}
-                  <div className="text-sm text-gray-600">{user.email}</div>     
-                           {" "}
+
+                  <div className="text-sm text-gray-600">{user.email}</div>
                 </td>
-                               {" "}
+
                 <td className="px-6 py-4">
-                                   {" "}
                   <span
                     className={`px-2 py-1 text-xs rounded-full ${
                       user.type === UserType.ADMIN
@@ -215,50 +195,39 @@ const AdminUsers: React.FC = () => {
                         ? "bg-yellow-100 text-yellow-800"
                         : "bg-gray-100 text-gray-800"
                     }`}>
-                                        {user.type}                 {" "}
+                    {user.type}
                   </span>
-                                 {" "}
                 </td>
-                               {" "}
+
                 <td className="px-6 py-4">
-                                   {" "}
                   <span
                     className={`px-2 py-1 text-xs rounded-full ${
                       user.is_verified
                         ? "bg-green-100 text-green-800"
                         : "bg-yellow-100 text-yellow-800"
                     }`}>
-                                       {" "}
-                    {user.is_verified ? "Vérifié" : "En attente"}               
-                     {" "}
+                    {user.is_verified ? "Vérifié" : "En attente"} {" "}
                   </span>
-                                 {" "}
                 </td>
-                               {" "}
+
                 <td className="px-6 py-4 text-sm">
-                                   {" "}
-                  {new Date(user.created_at).toLocaleDateString()}             
-                   {" "}
+                  {new Date(user.created_at).toLocaleDateString()} {" "}
                 </td>
-                               {" "}
+
                 <td className="px-6 py-4">
-                                   {" "}
                   <div className="flex space-x-2">
-                                       {" "}
                     <Link
                       to={`/admin/users/edit/${user.id}`}
                       className="text-indigo-600 hover:text-indigo-800 font-medium">
-                                            Modifier                    {" "}
+                      Modifier
                     </Link>
-                                       {" "}
+
                     <button
                       onClick={() => handleDelete(user.id)}
                       className="text-red-600 hover:text-red-900">
-                                            Supprimer                    {" "}
+                      Supprimer
                     </button>
-                                     {" "}
                   </div>
-                                 {" "}
                 </td>
               </tr>
             ))}
@@ -280,7 +249,6 @@ const AdminUsers: React.FC = () => {
           onPageChange={setCurrentPage}
         />
       </div>
-      {/* ✨ ------------------------------------------------ */}
     </div>
   );
 };

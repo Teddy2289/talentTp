@@ -17,8 +17,6 @@ const GeneralSettings: React.FC = () => {
     social_links: [] as SocialLink[],
   });
 
-  console.log("Current formData:", formData);
-
   useEffect(() => {
     if (settings) {
       setFormData({
@@ -72,18 +70,26 @@ const GeneralSettings: React.FC = () => {
     }
   };
 
-  if (loading && !settings) return <div>Chargement...</div>;
-  if (error) return <div className="text-red-500">Erreur: {error}</div>;
+  if (loading && !settings)
+    return <div className="text-black">Chargement...</div>;
+  if (error)
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        Erreur: {error}
+      </div>
+    );
 
   return (
-    <div className="general-settings">
-      <h2 className="text-xl font-bold mb-6 text-pluto-yellow">
+    <div className="p-6 bg-white text-black min-h-screen">
+      <h2 className="text-2xl font-bold mb-6 text-[#e1af30]">
         Paramètres Généraux
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 max-w-3xl mx-auto bg-gray-100 p-6 rounded-xl shadow-lg">
         {/* Titre du site */}
-        <div className="form-group">
+        <div>
           <label
             htmlFor="site_title"
             className="block text-sm font-medium mb-2">
@@ -96,12 +102,12 @@ const GeneralSettings: React.FC = () => {
             value={formData.site_title}
             onChange={handleChange}
             required
-            className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange"
+            className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#e1af30]"
           />
         </div>
 
         {/* Sous-titre du site */}
-        <div className="form-group">
+        <div>
           <label
             htmlFor="site_subtitle"
             className="block text-sm font-medium mb-2">
@@ -113,12 +119,12 @@ const GeneralSettings: React.FC = () => {
             name="site_subtitle"
             value={formData.site_subtitle}
             onChange={handleChange}
-            className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange"
+            className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#e1af30]"
           />
         </div>
 
         {/* ID du modèle associé */}
-        <div className="form-group">
+        <div>
           <label
             htmlFor="associated_model_id"
             className="block text-sm font-medium mb-2">
@@ -133,14 +139,14 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Afficher la navbar */}
-        <div className="form-group flex items-center">
+        <div className="flex items-center space-x-2">
           <input
             type="checkbox"
             id="show_navbar"
             name="show_navbar"
             checked={formData.show_navbar}
             onChange={handleChange}
-            className="mr-2"
+            className="h-5 w-5 border-gray-300 text-[#e1af30] focus:ring-[#e1af30]"
           />
           <label htmlFor="show_navbar" className="text-sm font-medium">
             Afficher la barre de navigation
@@ -148,7 +154,7 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Titre des réseaux sociaux */}
-        <div className="form-group">
+        <div>
           <label
             htmlFor="social_title"
             className="block text-sm font-medium mb-2">
@@ -160,19 +166,17 @@ const GeneralSettings: React.FC = () => {
             name="social_title"
             value={formData.social_title}
             onChange={handleChange}
-            className="w-full p-3 rounded-lg bg-pluto-medium-blue border border-pluto-light-blue focus:outline-none focus:ring-2 focus:ring-pluto-orange"
+            className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#e1af30]"
           />
         </div>
 
         {/* Réseaux sociaux */}
-        <div className="form-group">
+        <div>
           <label className="block text-sm font-medium mb-2">
             Réseaux Sociaux
           </label>
           {formData.social_links.map((link, index) => (
-            <div
-              key={index}
-              className="mb-4 p-4 border rounded-lg bg-pluto-medium-blue">
+            <div key={index} className="mb-4 p-4 border rounded-lg bg-white">
               <h4 className="font-semibold mb-2 capitalize">{link.platform}</h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
@@ -185,7 +189,7 @@ const GeneralSettings: React.FC = () => {
                       handleSocialLinkChange(index, "url", e.target.value)
                     }
                     placeholder={`URL ${link.platform}`}
-                    className="w-full p-2 rounded border border-pluto-light-blue text-sm"
+                    className="w-full p-2 rounded border border-gray-300 text-sm"
                   />
                 </div>
 
@@ -198,7 +202,7 @@ const GeneralSettings: React.FC = () => {
                       handleSocialLinkChange(index, "icon", e.target.value)
                     }
                     placeholder="Classe d'icône (ex: fa-facebook)"
-                    className="w-full p-2 rounded border border-pluto-light-blue text-sm"
+                    className="w-full p-2 rounded border border-gray-300 text-sm"
                   />
                 </div>
 
@@ -213,20 +217,20 @@ const GeneralSettings: React.FC = () => {
                         e.target.checked
                       )
                     }
-                    className="mr-2"
+                    className="mr-2 h-5 w-5 border-gray-300 text-[#e1af30] focus:ring-[#e1af30]"
                   />
                   <label className="text-xs">Actif</label>
                 </div>
               </div>
 
               {link.url && (
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-gray-500">
                   Lien:{" "}
                   <a
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-pluto-orange hover:underline">
+                    className="text-[#e1af30] hover:underline">
                     {link.url}
                   </a>
                 </div>
@@ -235,9 +239,10 @@ const GeneralSettings: React.FC = () => {
           ))}
         </div>
 
+        {/* Bouton Sauvegarder */}
         <button
           type="submit"
-          className="px-6 py-3 bg-pluto-orange hover:bg-opacity-90 text-white font-semibold rounded-lg transition-all duration-200 shadow-md"
+          className="px-6 py-3 bg-[#e1af30] hover:bg-opacity-90 text-white font-semibold rounded-lg transition-all duration-200 shadow-md"
           disabled={loading}>
           {loading ? "Enregistrement..." : "Enregistrer les modifications"}
         </button>
