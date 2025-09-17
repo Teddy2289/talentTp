@@ -52,6 +52,31 @@ export const settingsApi = {
     return api.put("/settings/home", homeData);
   },
   // Activation/désactivation
+
+  getPaymentPlans: () => api.get("/payments/plans"),
+
+  // Récupérer les plans actifs (public)
+  getActivePlans: () => api.get("/payments/active-plans"),
+
+  // Créer une session de checkout
+  createCheckoutSession: (
+    planId: number,
+    conversationId: number,
+    userId: number
+  ) =>
+    api.post("/payments/create-checkout-session", {
+      planId,
+      conversationId,
+      userId,
+    }),
+
+  // Créer une conversation
+  createConversation: (clientId: number, modelId: number) =>
+    api.post("/conversations", { clientId, modelId }),
+
+  // Vérifier un paiement
+  verifyPayment: (sessionId: string, conversationId: number) =>
+    api.post("/payments/verify-payment", { sessionId, conversationId }),
   toggleSection: (section: string) => api.patch(`/settings/${section}/toggle`),
 };
 

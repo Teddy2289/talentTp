@@ -1,16 +1,16 @@
-import { useAlert } from "../../contexts/AlertContext";
-
+// core/payment/plans.ts
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 class ApiService {
-  private alert = useAlert;
   private getToken() {
     return localStorage.getItem("token");
   }
+
   async request(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getToken();
+
     const config: RequestInit = {
       headers: {
         "Content-Type": "application/json",
@@ -20,15 +20,24 @@ class ApiService {
       ...options,
     };
 
+    // Ajouter le body si présent (sauf pour les requêtes GET/HEAD)
+    if (options.body && !["GET", "HEAD"].includes(options.method || "GET")) {
+      config.body = options.body;
+    }
+
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.message ||
+            `HTTP error! status: ${response.status}`
+        );
       }
 
-      return data;
+      return await response.json();
     } catch (error: any) {
       console.error("API request failed:", error);
       throw error;
@@ -51,8 +60,13 @@ class ApiService {
     return this.request("/payments/plans");
   }
 
+  async getActivePlans() {
+    return this.request("/payments/active-plans");
+  }
+
   async verifyPayment(sessionId: string, conversationId: number) {
-    return this.request("/payments/verify", {
+    return this.request("/payments/verify-payment", {
+      // Correction du endpoint
       method: "POST",
       body: JSON.stringify({ sessionId, conversationId }),
     });

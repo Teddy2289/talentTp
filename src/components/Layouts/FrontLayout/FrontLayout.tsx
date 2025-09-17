@@ -14,9 +14,7 @@ export const FrontLayout: React.FC<FrontLayoutProps> = ({
   return (
     <>
       <NavBar />
-      <main className={`pt-20 min-h-screen  ${fullWidth ? "" : "mt-20 px-4"}`}>
-        {children}
-      </main>
+      <main>{children}</main>
     </>
   );
 };

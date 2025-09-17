@@ -217,7 +217,7 @@ const AdminModels: React.FC = () => {
                           className="w-16 h-16 rounded-full object-cover border border-gray-300 shadow-sm"
                           onError={(e) => {
                             e.currentTarget.src =
-                              "https://via.placeholder.com/64x64/cccccc/969696?text=No+Image";
+                              "https://cdn-icons-png.flaticon.com/512/9187/9187604.png";
                           }}
                         />
                       ) : (

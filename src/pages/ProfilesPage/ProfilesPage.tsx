@@ -147,7 +147,7 @@ function ProfilesPage() {
     );
   }
 
-  const { model, about_title, custom_content } = profileData.about;
+  const { model } = profileData.about;
   const imageUrl = model.photo.startsWith("http")
     ? model.photo
     : `http://localhost:3000${model.photo}`;
@@ -199,7 +199,7 @@ function ProfilesPage() {
                     alt={model.prenom}
                     onError={(e) => {
                       e.target.src =
-                        "https://via.placeholder.com/400x500/1a1a1a/ffffff?text=Photo+non+disponible";
+                        "https://w7.pngwing.com/pngs/282/86/png-transparent-girl-lady-user-woman-famous-character-flat-icon.png";
                     }}
                   />
                   {/* Gradient overlay */}

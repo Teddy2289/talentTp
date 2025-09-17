@@ -5,7 +5,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "react-router-dom";
 import {
   Plus,
-  Search,
   Phone,
   Video,
   MoreHorizontal,
@@ -16,6 +15,7 @@ import {
   User,
   Loader,
   Clock,
+  CreditCard, // Nouvelle icône pour le paiement
 } from "lucide-react";
 import { modelService } from "../../services/modelService";
 import { settingsApi } from "../../core/settingsApi";
@@ -71,12 +71,10 @@ interface Conversation {
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const {
-    conversations,
     currentConversation,
     createConversation,
     getConversation,
     incrementMessage,
-    loading: convLoading,
   } = useConversation();
   const { messages, isLoading, sendMessage } = useAIChat();
 
@@ -218,7 +216,9 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="container h-[calc(80vh-5rem)] mt-5 bg-gray-900 rounded-xl shadow-lg overflow-hidden text-gray-100">
+    <div
+      style={{ marginTop: "8rem" }}
+      className="container h-[calc(80vh-5rem)] mt-5 bg-gray-900 rounded-xl shadow-lg overflow-hidden text-gray-100">
       <div className="flex h-full">
         {/* Sidebar modèle unique */}
         <div className="w-1/4 border-r border-gray-700 flex flex-col bg-gray-800">
@@ -345,6 +345,13 @@ const ChatPage: React.FC = () => {
               </div>
             </div>
             <div className="flex space-x-4 text-gray-400">
+              {/* Bouton pour accéder aux plans de paiement */}
+              <Link
+                to="/plans"
+                title="Acheter des crédits"
+                className="hover:text-gray-200">
+                <CreditCard size={20} />
+              </Link>
               <button title="Appel vocal" className="hover:text-gray-200">
                 <Phone size={20} />
               </button>
@@ -376,6 +383,14 @@ const ChatPage: React.FC = () => {
                   Les messages sont sécurisés avec un chiffrement de bout en
                   bout
                 </p>
+                {/* Lien vers les plans de paiement si pas de conversation sélectionnée */}
+                {!selectedConversationId && (
+                  <Link
+                    to="/plans"
+                    className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md transition-colors">
+                    Voir les plans de paiement
+                  </Link>
+                )}
               </div>
             ) : (
               conversationMessages.map((msg) => (
@@ -418,38 +433,49 @@ const ChatPage: React.FC = () => {
           </div>
 
           <div className="p-3 flex items-center bg-gray-800">
-            <button
-              title="Emoji"
-              className="p-2 text-gray-400 hover:text-gray-200 mx-1">
-              <Smile size={20} />
-            </button>
-            <button
-              title="Pièce jointe"
-              className="p-2 text-gray-400 hover:text-gray-200 mx-1">
-              <Paperclip size={20} />
-            </button>
-            <form onSubmit={handleSendMessage} className="flex-1 flex mx-2">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={
-                  selectedConversationId
-                    ? "Tapez un message"
-                    : "Sélectionnez une conversation"
-                }
-                disabled={isLoading || !selectedConversationId}
-                className="flex-1 px-4 py-2 bg-gray-700 rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50 text-gray-100"
-              />
-            </form>
-            <button
-              onClick={handleSendMessage}
-              disabled={
-                isLoading || !inputMessage.trim() || !selectedConversationId
-              }
-              className="p-2 bg-yellow-600 text-white rounded-full hover:bg-yellow-700 disabled:opacity-50 transition-colors mx-1">
-              <Send size={20} />
-            </button>
+            {currentConversation?.message_count >= 2 ? (
+              // 👉 Lien vers les plans de paiement si limite atteinte
+              <Link
+                to="/plans"
+                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full text-center transition-colors">
+                Acheter un plan pour continuer à discuter
+              </Link>
+            ) : (
+              <>
+                <button
+                  title="Emoji"
+                  className="p-2 text-gray-400 hover:text-gray-200 mx-1">
+                  <Smile size={20} />
+                </button>
+                <button
+                  title="Pièce jointe"
+                  className="p-2 text-gray-400 hover:text-gray-200 mx-1">
+                  <Paperclip size={20} />
+                </button>
+                <form onSubmit={handleSendMessage} className="flex-1 flex mx-2">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder={
+                      selectedConversationId
+                        ? "Tapez un message"
+                        : "Sélectionnez une conversation"
+                    }
+                    disabled={isLoading || !selectedConversationId}
+                    className="flex-1 px-4 py-2 bg-gray-700 rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50 text-gray-100"
+                  />
+                </form>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={
+                    isLoading || !inputMessage.trim() || !selectedConversationId
+                  }
+                  className="p-2 bg-yellow-600 text-white rounded-full hover:bg-yellow-700 disabled:opacity-50 transition-colors mx-1">
+                  <Send size={20} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
