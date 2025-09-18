@@ -128,6 +128,8 @@ const AdminUsers: React.FC = () => {
               <option value="all">Tous</option>
               <option value={UserType.ADMIN}>Administrateur</option>
               <option value={UserType.USER}>Utilisateur</option>
+              <option value={UserType.AGENT}>Agent</option>
+              <option value={UserType.CLIENT}>Client</option>
             </select>
           </div>
 

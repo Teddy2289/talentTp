@@ -15,7 +15,8 @@ import {
   User,
   Loader,
   Clock,
-  CreditCard, // Nouvelle icône pour le paiement
+  CreditCard,
+  Search,
 } from "lucide-react";
 import { modelService } from "../../services/modelService";
 import { settingsApi } from "../../core/settingsApi";
@@ -84,6 +85,7 @@ const ChatPage: React.FC = () => {
   >(null);
   const [model, setModel] = useState<Model | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [loadingClients, setLoadingClients] = useState(false);
@@ -91,6 +93,7 @@ const ChatPage: React.FC = () => {
     []
   );
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -128,6 +131,7 @@ const ChatPage: React.FC = () => {
         setLoadingClients(true);
         const clientsData = await modelService.getModelClients(model.id);
         setClients(clientsData);
+        setFilteredClients(clientsData);
       } catch (error) {
         console.error("Erreur récupération clients:", error);
       } finally {
@@ -136,6 +140,22 @@ const ChatPage: React.FC = () => {
     };
     fetchClients();
   }, [model]);
+
+  // 👉 Filtrer les clients selon la recherche
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredClients(clients);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = clients.filter(
+        (client) =>
+          client.first_name.toLowerCase().includes(query) ||
+          client.last_name.toLowerCase().includes(query) ||
+          client.email.toLowerCase().includes(query)
+      );
+      setFilteredClients(filtered);
+    }
+  }, [searchQuery, clients]);
 
   // 👉 Charger les messages d'une conversation
   useEffect(() => {
@@ -215,71 +235,69 @@ const ChatPage: React.FC = () => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  return (
-    <div
-      style={{ marginTop: "8rem" }}
-      className="container h-[calc(80vh-5rem)] mt-5 bg-gray-900 rounded-xl shadow-lg overflow-hidden text-gray-100">
-      <div className="flex h-full">
-        {/* Sidebar modèle unique */}
-        <div className="w-1/4 border-r border-gray-700 flex flex-col bg-gray-800">
-          <div className="p-4 border-b border-gray-700">
-            <h3 className="font-semibold text-lg flex items-center">
-              Modèle sélectionné
-            </h3>
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            {loadingModel ? (
-              <Loader className="animate-spin" />
-            ) : model ? (
-              <div className="text-center">
-                <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl">
-                  {model.prenom?.charAt(0) || "M"}
-                </div>
-                <h4 className="mt-2 font-medium">
-                  {model.prenom} {model.nom}
-                </h4>
-              </div>
-            ) : (
-              <p className="text-gray-400">Aucun modèle configuré</p>
-            )}
-          </div>
-        </div>
+  // Vérifier si la conversation nécessite un paiement
+  const requiresPayment =
+    currentConversation && currentConversation.message_count >= 2;
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 pt-24 pb-10 px-4">
+      <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
         {/* Sidebar des clients avec leurs conversations */}
-        <div className="w-1/4 border-r border-gray-700 flex flex-col bg-gray-800">
+        <div className="w-full md:w-1/3 lg:w-1/4 flex flex-col bg-gray-800 border-r border-gray-700">
           <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-            <h3 className="font-semibold text-lg flex items-center">
-              <User className="mr-2" size={20} /> Clients
+            <h3 className="font-semibold text-lg flex items-center text-white">
+              <User className="mr-2" size={20} /> Conversations
             </h3>
             <button
               onClick={handleNewConversation}
               title="Nouvelle conversation"
-              className="text-gray-400 hover:text-gray-200">
-              <Plus size={20} />
+              className="p-2 bg-yellow-600 hover:bg-yellow-700 rounded-full transition-colors">
+              <Plus size={18} className="text-white" />
             </button>
+          </div>
+
+          {/* Barre de recherche */}
+          <div className="p-3 border-b border-gray-700">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Rechercher un client..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {loadingClients ? (
               <div className="p-4 flex justify-center">
-                <Loader className="animate-spin" />
+                <Loader className="animate-spin text-yellow-600" />
               </div>
-            ) : clients.length === 0 ? (
-              <div className="p-4 text-gray-400">Aucun client</div>
+            ) : filteredClients.length === 0 ? (
+              <div className="p-4 text-center text-gray-400">
+                {searchQuery ? "Aucun client trouvé" : "Aucun client"}
+              </div>
             ) : (
-              clients.map((client) => (
+              filteredClients.map((client) => (
                 <div key={client.id} className="border-b border-gray-700">
                   <div
                     onClick={() => handleSelectClient(client.id)}
-                    className={`p-3 cursor-pointer hover:bg-gray-700 ${
-                      selectedClientId === client.id ? "bg-gray-700" : ""
+                    className={`p-3 cursor-pointer transition-colors ${
+                      selectedClientId === client.id
+                        ? "bg-gradient-to-r from-yellow-900/30 to-gray-800"
+                        : "hover:bg-gray-700"
                     }`}>
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-md">
                         {client.first_name?.charAt(0) || "C"}
                       </div>
                       <div className="ml-3 flex-1 min-w-0">
-                        <h4 className="font-medium truncate">
+                        <h4 className="font-medium text-white truncate">
                           {client.first_name} {client.last_name}
                         </h4>
                         <p className="text-sm text-gray-400 truncate">
@@ -300,17 +318,17 @@ const ChatPage: React.FC = () => {
                         onClick={() =>
                           handleSelectConversation(conversation.id)
                         }
-                        className={`pl-12 pr-3 py-2 cursor-pointer hover:bg-gray-700 text-sm ${
+                        className={`pl-14 pr-3 py-2 cursor-pointer transition-colors text-sm ${
                           selectedConversationId === conversation.id
-                            ? "bg-yellow-900"
-                            : ""
+                            ? "bg-yellow-800/40 text-white"
+                            : "hover:bg-gray-700 text-gray-300"
                         }`}>
                         <div className="flex justify-between items-center">
                           <span className="truncate">
                             Conversation #{conversation.id}
                           </span>
-                          <span className="text-xs text-gray-400">
-                            {conversation.message_count} messages
+                          <span className="text-xs bg-gray-700 px-2 py-1 rounded-full">
+                            {conversation.message_count}
                           </span>
                         </div>
                         <div className="text-xs text-gray-400 flex items-center mt-1">
@@ -328,58 +346,75 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Section de chat principale */}
-        <div className="flex-1 flex flex-col">
-          <div className="px-4 py-3 flex justify-between items-center border-b border-gray-700 bg-gray-800">
+        <div className="flex-1 flex flex-col bg-gray-900">
+          <div className="px-6 py-4 flex justify-between items-center border-b border-gray-700 bg-gray-800">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center font-bold text-lg">
-                {currentConversation?.model?.prenom?.charAt(0) || "S"}
-              </div>
-              <div className="ml-3">
-                <h2 className="font-semibold">
-                  {currentConversation?.model?.prenom ||
-                    "Sélectionnez une conversation"}
-                </h2>
-                <p className="text-xs text-gray-400">
-                  {selectedConversationId ? "En ligne" : "Hors ligne"}
-                </p>
-              </div>
+              {currentConversation?.model && (
+                <>
+                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-600 to-yellow-800 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-md">
+                    {currentConversation.model.prenom?.charAt(0) || "S"}
+                  </div>
+                  <div className="ml-4">
+                    <h2 className="font-semibold text-white">
+                      {currentConversation.model.prenom}{" "}
+                      {currentConversation.model.nom}
+                    </h2>
+                    <p className="text-sm text-gray-400">
+                      {selectedConversationId ? "En ligne" : "Hors ligne"}
+                    </p>
+                  </div>
+                </>
+              )}
+              {!currentConversation && (
+                <div className="ml-4">
+                  <h2 className="font-semibold text-white">
+                    Sélectionnez une conversation
+                  </h2>
+                </div>
+              )}
             </div>
-            <div className="flex space-x-4 text-gray-400">
+            <div className="flex space-x-3">
               {/* Bouton pour accéder aux plans de paiement */}
               <Link
                 to="/plans"
                 title="Acheter des crédits"
-                className="hover:text-gray-200">
-                <CreditCard size={20} />
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors">
+                <CreditCard size={20} className="text-yellow-500" />
               </Link>
-              <button title="Appel vocal" className="hover:text-gray-200">
-                <Phone size={20} />
+              <button
+                title="Appel vocal"
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors">
+                <Phone size={20} className="text-gray-300" />
               </button>
-              <button title="Appel vidéo" className="hover:text-gray-200">
-                <Video size={20} />
+              <button
+                title="Appel vidéo"
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors">
+                <Video size={20} className="text-gray-300" />
               </button>
-              <button title="Plus d'options" className="hover:text-gray-200">
-                <MoreHorizontal size={20} />
+              <button
+                title="Plus d'options"
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors">
+                <MoreHorizontal size={20} className="text-gray-300" />
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-900">
+          <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-900 to-gray-800">
             {loadingMessages ? (
               <div className="flex justify-center items-center h-full">
-                <Loader className="animate-spin" />
+                <Loader className="animate-spin text-yellow-600" size={32} />
               </div>
             ) : conversationMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
-                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-4 shadow-md">
+                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-lg">
                   <MessageCircle size={48} className="text-yellow-600" />
                 </div>
-                <p className="text-lg font-medium">
+                <p className="text-lg font-medium text-white mb-2">
                   {selectedConversationId
                     ? "Envoyez un message pour commencer"
                     : "Sélectionnez une conversation"}
                 </p>
-                <p className="text-sm mt-2 max-w-md">
+                <p className="text-sm max-w-md">
                   Les messages sont sécurisés avec un chiffrement de bout en
                   bout
                 </p>
@@ -387,43 +422,48 @@ const ChatPage: React.FC = () => {
                 {!selectedConversationId && (
                   <Link
                     to="/plans"
-                    className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md transition-colors">
+                    className="mt-6 bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg transition-colors shadow-md">
                     Voir les plans de paiement
                   </Link>
                 )}
               </div>
             ) : (
-              conversationMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex mb-4 ${
-                    msg.isFromModel ? "justify-start" : "justify-end"
-                  }`}>
+              <div className="space-y-4">
+                {conversationMessages.map((msg) => (
                   <div
-                    className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-2xl p-3 ${
-                      msg.isFromModel
-                        ? "bg-gray-800 text-gray-100 shadow-sm"
-                        : "bg-yellow-600 text-gray-100 font-medium"
+                    key={msg.id}
+                    className={`flex ${
+                      msg.isFromModel ? "justify-start" : "justify-end"
                     }`}>
-                    <div className="text-sm">{msg.content}</div>
-                    <div className="text-xs text-gray-400 flex items-center justify-end mt-1">
-                      <Clock size={10} className="mr-1" />
-                      {formatTime(msg.created_at)}
+                    <div
+                      className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-2xl p-4 shadow-md ${
+                        msg.isFromModel
+                          ? "bg-gray-800 text-gray-100"
+                          : "bg-gradient-to-r from-yellow-600 to-yellow-700 text-white"
+                      }`}>
+                      <div className="text-sm mb-1">{msg.content}</div>
+                      <div
+                        className={`text-xs flex items-center justify-end ${
+                          msg.isFromModel ? "text-gray-400" : "text-yellow-100"
+                        }`}>
+                        <Clock size={10} className="mr-1" />
+                        {formatTime(msg.created_at)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
             {isLoading && (
-              <div className="flex justify-start mb-2">
-                <div className="bg-gray-800 text-gray-100 rounded-2xl p-3 max-w-xs md:max-w-md shadow-sm">
+              <div className="flex justify-start mb-4">
+                <div className="bg-gray-800 text-gray-100 rounded-2xl p-4 max-w-xs md:max-w-md shadow-md">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div
-                      className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
                       style={{ animationDelay: "0.2s" }}></div>
                     <div
-                      className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
                       style={{ animationDelay: "0.4s" }}></div>
                   </div>
                 </div>
@@ -432,25 +472,30 @@ const ChatPage: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 flex items-center bg-gray-800">
-            {currentConversation?.message_count >= 2 ? (
-              // 👉 Lien vers les plans de paiement si limite atteinte
-              <Link
-                to="/plans"
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full text-center transition-colors">
-                Acheter un plan pour continuer à discuter
-              </Link>
+          <div className="p-4 flex items-center bg-gray-800 border-t border-gray-700">
+            {requiresPayment ? (
+              // 👉 Lien vers les plans de paiement si limite de 2 messages atteinte
+              <div className="w-full text-center p-4 bg-yellow-900/30 rounded-lg">
+                <p className="text-yellow-200 mb-2">
+                  Vous avez atteint la limite de 2 messages gratuits.
+                </p>
+                <Link
+                  to="/plans"
+                  className="inline-block bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-6 py-2 rounded-full transition-all shadow-md">
+                  Acheter un plan pour continuer à discuter
+                </Link>
+              </div>
             ) : (
               <>
                 <button
                   title="Emoji"
-                  className="p-2 text-gray-400 hover:text-gray-200 mx-1">
-                  <Smile size={20} />
+                  className="p-2 text-gray-400 hover:text-yellow-500 mx-1 transition-colors">
+                  <Smile size={24} />
                 </button>
                 <button
                   title="Pièce jointe"
-                  className="p-2 text-gray-400 hover:text-gray-200 mx-1">
-                  <Paperclip size={20} />
+                  className="p-2 text-gray-400 hover:text-yellow-500 mx-1 transition-colors">
+                  <Paperclip size={24} />
                 </button>
                 <form onSubmit={handleSendMessage} className="flex-1 flex mx-2">
                   <input
@@ -459,11 +504,11 @@ const ChatPage: React.FC = () => {
                     onChange={(e) => setInputMessage(e.target.value)}
                     placeholder={
                       selectedConversationId
-                        ? "Tapez un message"
+                        ? "Tapez votre message..."
                         : "Sélectionnez une conversation"
                     }
                     disabled={isLoading || !selectedConversationId}
-                    className="flex-1 px-4 py-2 bg-gray-700 rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50 text-gray-100"
+                    className="flex-1 px-5 py-3 bg-gray-700 text-white rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50"
                   />
                 </form>
                 <button
@@ -471,7 +516,7 @@ const ChatPage: React.FC = () => {
                   disabled={
                     isLoading || !inputMessage.trim() || !selectedConversationId
                   }
-                  className="p-2 bg-yellow-600 text-white rounded-full hover:bg-yellow-700 disabled:opacity-50 transition-colors mx-1">
+                  className="p-3 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-full hover:from-yellow-700 hover:to-yellow-800 disabled:opacity-50 transition-all shadow-md mx-1">
                   <Send size={20} />
                 </button>
               </>
