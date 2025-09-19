@@ -43,7 +43,7 @@ const defaultProfileData = {
 function ProfilesPage() {
   const [profileData, setProfileData] = useState(defaultProfileData);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("info");
 
   useEffect(() => {
@@ -56,8 +56,8 @@ function ProfilesPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const result = await response.json();
+        console.log("Fetch response:", result);
 
-        // Fusionner les données reçues avec les données par défaut
         if (result.data) {
           setProfileData({
             ...defaultProfileData,
@@ -65,9 +65,10 @@ function ProfilesPage() {
             about: {
               ...defaultProfileData.about,
               ...result.data.about,
+              // 🔥 ici on prend model depuis general
               model: {
                 ...defaultProfileData.about.model,
-                ...result.data.about?.model,
+                ...result.data.general?.model,
               },
             },
           });
@@ -84,18 +85,6 @@ function ProfilesPage() {
     };
     fetchData();
   }, []);
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.3,
-      },
-    },
-  };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },

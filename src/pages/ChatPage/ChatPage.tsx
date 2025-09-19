@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useConversation } from "../../contexts/ConversationContext";
-import { useAIChat } from "../../contexts/useAIChat";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSocket } from "../../contexts/SocketContext";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -11,7 +11,6 @@ import {
   Smile,
   Paperclip,
   Send,
-  MessageCircle,
   User,
   Loader,
   Clock,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 import { modelService } from "../../services/modelService";
 import { settingsApi } from "../../core/settingsApi";
-import { conversationService } from "../../services/chatService";
 
 // Types
 interface Model {
@@ -71,13 +69,9 @@ interface Conversation {
 
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
-  const {
-    currentConversation,
-    createConversation,
-    getConversation,
-    incrementMessage,
-  } = useConversation();
-  const { messages, isLoading, sendMessage } = useAIChat();
+  const { socket, isConnected } = useSocket();
+  const { currentConversation, createConversation, getConversation } =
+    useConversation();
 
   const [inputMessage, setInputMessage] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<
@@ -94,6 +88,7 @@ const ChatPage: React.FC = () => {
   );
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -102,9 +97,66 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, conversationMessages, scrollToBottom]);
+  }, [conversationMessages, scrollToBottom]);
 
-  // 👉 Charger le modèle depuis les settings
+  // Écouter les nouveaux messages via Socket.io
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (message: Message) => {
+      setConversationMessages((prev) => [...prev, message]);
+    };
+
+    const handleConversationHistory = (messages: Message[]) => {
+      setConversationMessages(messages);
+      setLoadingMessages(false);
+    };
+
+    const handleAccessDenied = (data: { error: string }) => {
+      console.error("Access denied:", data.error);
+      setLoadingMessages(false);
+    };
+
+    socket.on("new_message", handleNewMessage);
+    socket.on("conversation_history", handleConversationHistory);
+    socket.on("access_denied", handleAccessDenied);
+
+    return () => {
+      socket.off("new_message", handleNewMessage);
+      socket.off("conversation_history", handleConversationHistory);
+      socket.off("access_denied", handleAccessDenied);
+    };
+  }, [socket]);
+
+  // Rejoindre une conversation quand elle est sélectionnée
+  // Rejoindre une conversation quand elle est sélectionnée
+  useEffect(() => {
+    if (socket && selectedConversationId && user) {
+      setLoadingMessages(true);
+
+      // Timeout pour éviter le loading infini
+      const timeoutId = setTimeout(() => {
+        setLoadingMessages(false);
+      }, 10000); // 10 secondes timeout
+
+      socket.emit("join_conversation", {
+        conversationId: selectedConversationId,
+        userId: user.id,
+      });
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+
+    return () => {
+      if (socket && selectedConversationId) {
+        socket.emit("leave_conversation", selectedConversationId);
+      }
+    };
+  }, [socket, selectedConversationId, user]);
+
+  // Charger le modèle depuis les settings
   useEffect(() => {
     const fetchModel = async () => {
       try {
@@ -123,7 +175,7 @@ const ChatPage: React.FC = () => {
     fetchModel();
   }, []);
 
-  // 👉 Charger les clients du modèle unique
+  // Charger les clients du modèle
   useEffect(() => {
     const fetchClients = async () => {
       if (!model?.id) return;
@@ -141,7 +193,7 @@ const ChatPage: React.FC = () => {
     fetchClients();
   }, [model]);
 
-  // 👉 Filtrer les clients selon la recherche
+  // Filtrer les clients selon la recherche
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredClients(clients);
@@ -157,29 +209,6 @@ const ChatPage: React.FC = () => {
     }
   }, [searchQuery, clients]);
 
-  // 👉 Charger les messages d'une conversation
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedConversationId) return;
-
-      try {
-        setLoadingMessages(true);
-        const response = await conversationService.getConversationMessages(
-          selectedConversationId
-        );
-        if (response.success) {
-          setConversationMessages(response.data);
-        }
-      } catch (error) {
-        console.error("Erreur récupération messages:", error);
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-    fetchMessages();
-  }, [selectedConversationId]);
-
   const handleSelectConversation = async (id: number) => {
     setSelectedConversationId(id);
     await getConversation(id);
@@ -188,35 +217,39 @@ const ChatPage: React.FC = () => {
   const handleNewConversation = async () => {
     if (!user || !model?.id) return;
     const newConv = await createConversation(user.id, model.id);
-    if (newConv?.id) setSelectedConversationId(newConv.id);
+    if (newConv?.id) {
+      setSelectedConversationId(newConv.id);
+      setSelectedClientId(user.id);
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputMessage.trim() || !user || !currentConversation) return;
-
-    const response = await sendMessage(
-      inputMessage,
-      currentConversation.model,
-      user.id
-    );
-
-    if (response?.requiresPayment) {
-      setInputMessage("");
+    if (
+      !inputMessage.trim() ||
+      !user ||
+      !selectedConversationId ||
+      !socket ||
+      !isConnected
+    )
       return;
-    }
 
-    await incrementMessage(currentConversation.id);
-    setInputMessage("");
+    setIsSending(true);
 
-    // Recharger les messages après envoi
-    if (selectedConversationId) {
-      const updatedMessages = await conversationService.getConversationMessages(
-        selectedConversationId
-      );
-      if (updatedMessages.success) {
-        setConversationMessages(updatedMessages.data);
-      }
+    try {
+      // Envoyer le message via Socket.io
+      socket.emit("send_message", {
+        conversationId: selectedConversationId,
+        senderId: user.id,
+        content: inputMessage,
+        isFromModel: false,
+      });
+
+      setInputMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -224,30 +257,35 @@ const ChatPage: React.FC = () => {
     setSelectedClientId(clientId);
     const client = clients.find((c) => c.id === clientId);
     if (client && client.Conversation.length > 0) {
-      setSelectedConversationId(client.Conversation[0].id);
-      getConversation(client.Conversation[0].id);
+      const conversation = client.Conversation[0];
+      setSelectedConversationId(conversation.id);
+      getConversation(conversation.id);
     }
   };
 
-  // Formater la date pour l'affichage
+  // Formater la date
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  // Vérifier si la conversation nécessite un paiement
-  const requiresPayment =
-    currentConversation && currentConversation.message_count >= 2;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 pt-24 pb-10 px-4">
       <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
-        {/* Sidebar des clients avec leurs conversations */}
+        {/* Sidebar clients */}
         <div className="w-full md:w-1/3 lg:w-1/4 flex flex-col bg-gray-800 border-r border-gray-700">
           <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-            <h3 className="font-semibold text-lg flex items-center text-white">
-              <User className="mr-2" size={20} /> Conversations
-            </h3>
+            <div className="flex items-center">
+              <h3 className="font-semibold text-lg flex items-center text-white">
+                <User className="mr-2" size={20} /> Conversations
+              </h3>
+              <div
+                className={`ml-2 w-3 h-3 rounded-full ${
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                }`}
+                title={isConnected ? "Connecté" : "Déconnecté"}
+              />
+            </div>
             <button
               onClick={handleNewConversation}
               title="Nouvelle conversation"
@@ -256,7 +294,7 @@ const ChatPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Barre de recherche */}
+          {/* Barre recherche */}
           <div className="p-3 border-b border-gray-700">
             <div className="relative">
               <Search
@@ -279,9 +317,7 @@ const ChatPage: React.FC = () => {
                 <Loader className="animate-spin text-yellow-600" />
               </div>
             ) : filteredClients.length === 0 ? (
-              <div className="p-4 text-center text-gray-400">
-                {searchQuery ? "Aucun client trouvé" : "Aucun client"}
-              </div>
+              <div className="p-4 text-center text-gray-400">Aucun client</div>
             ) : (
               filteredClients.map((client) => (
                 <div key={client.id} className="border-b border-gray-700">
@@ -310,7 +346,7 @@ const ChatPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Liste des conversations du client */}
+                  {/* Liste conversations */}
                   {selectedClientId === client.id &&
                     client.Conversation.map((conversation) => (
                       <div
@@ -345,7 +381,7 @@ const ChatPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Section de chat principale */}
+        {/* Chat principal */}
         <div className="flex-1 flex flex-col bg-gray-900">
           <div className="px-6 py-4 flex justify-between items-center border-b border-gray-700 bg-gray-800">
             <div className="flex items-center">
@@ -359,22 +395,12 @@ const ChatPage: React.FC = () => {
                       {currentConversation.model.prenom}{" "}
                       {currentConversation.model.nom}
                     </h2>
-                    <p className="text-sm text-gray-400">
-                      {selectedConversationId ? "En ligne" : "Hors ligne"}
-                    </p>
+                    <p className="text-sm text-gray-400">En ligne</p>
                   </div>
                 </>
               )}
-              {!currentConversation && (
-                <div className="ml-4">
-                  <h2 className="font-semibold text-white">
-                    Sélectionnez une conversation
-                  </h2>
-                </div>
-              )}
             </div>
             <div className="flex space-x-3">
-              {/* Bouton pour accéder aux plans de paiement */}
               <Link
                 to="/plans"
                 title="Acheter des crédits"
@@ -404,29 +430,6 @@ const ChatPage: React.FC = () => {
               <div className="flex justify-center items-center h-full">
                 <Loader className="animate-spin text-yellow-600" size={32} />
               </div>
-            ) : conversationMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
-                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-lg">
-                  <MessageCircle size={48} className="text-yellow-600" />
-                </div>
-                <p className="text-lg font-medium text-white mb-2">
-                  {selectedConversationId
-                    ? "Envoyez un message pour commencer"
-                    : "Sélectionnez une conversation"}
-                </p>
-                <p className="text-sm max-w-md">
-                  Les messages sont sécurisés avec un chiffrement de bout en
-                  bout
-                </p>
-                {/* Lien vers les plans de paiement si pas de conversation sélectionnée */}
-                {!selectedConversationId && (
-                  <Link
-                    to="/plans"
-                    className="mt-6 bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg transition-colors shadow-md">
-                    Voir les plans de paiement
-                  </Link>
-                )}
-              </div>
             ) : (
               <div className="space-y-4">
                 {conversationMessages.map((msg) => (
@@ -454,73 +457,45 @@ const ChatPage: React.FC = () => {
                 ))}
               </div>
             )}
-            {isLoading && (
-              <div className="flex justify-start mb-4">
-                <div className="bg-gray-800 text-gray-100 rounded-2xl p-4 max-w-xs md:max-w-md shadow-md">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.4s" }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Zone de saisie */}
           <div className="p-4 flex items-center bg-gray-800 border-t border-gray-700">
-            {requiresPayment ? (
-              // 👉 Lien vers les plans de paiement si limite de 2 messages atteinte
-              <div className="w-full text-center p-4 bg-yellow-900/30 rounded-lg">
-                <p className="text-yellow-200 mb-2">
-                  Vous avez atteint la limite de 2 messages gratuits.
-                </p>
-                <Link
-                  to="/plans"
-                  className="inline-block bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-6 py-2 rounded-full transition-all shadow-md">
-                  Acheter un plan pour continuer à discuter
-                </Link>
-              </div>
-            ) : (
-              <>
-                <button
-                  title="Emoji"
-                  className="p-2 text-gray-400 hover:text-yellow-500 mx-1 transition-colors">
-                  <Smile size={24} />
-                </button>
-                <button
-                  title="Pièce jointe"
-                  className="p-2 text-gray-400 hover:text-yellow-500 mx-1 transition-colors">
-                  <Paperclip size={24} />
-                </button>
-                <form onSubmit={handleSendMessage} className="flex-1 flex mx-2">
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder={
-                      selectedConversationId
-                        ? "Tapez votre message..."
-                        : "Sélectionnez une conversation"
-                    }
-                    disabled={isLoading || !selectedConversationId}
-                    className="flex-1 px-5 py-3 bg-gray-700 text-white rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50"
-                  />
-                </form>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={
-                    isLoading || !inputMessage.trim() || !selectedConversationId
-                  }
-                  className="p-3 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-full hover:from-yellow-700 hover:to-yellow-800 disabled:opacity-50 transition-all shadow-md mx-1">
-                  <Send size={20} />
-                </button>
-              </>
-            )}
+            <button
+              title="Emoji"
+              className="p-2 text-gray-400 hover:text-yellow-500 mx-1 transition-colors">
+              <Smile size={24} />
+            </button>
+            <button
+              title="Pièce jointe"
+              className="p-2 text-gray-400 hover:text-yellow-500 mx-1 transition-colors">
+              <Paperclip size={24} />
+            </button>
+            <form onSubmit={handleSendMessage} className="flex-1 flex mx-2">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder={
+                  isConnected
+                    ? "Tapez votre message..."
+                    : "Connexion en cours..."
+                }
+                disabled={isSending || !isConnected}
+                className="flex-1 px-5 py-3 bg-gray-700 text-white rounded-full border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:opacity-50"
+              />
+            </form>
+            <button
+              onClick={handleSendMessage}
+              disabled={isSending || !inputMessage.trim() || !isConnected}
+              className="p-3 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-full hover:from-yellow-700 hover:to-yellow-800 disabled:opacity-50 transition-all shadow-md mx-1">
+              {isSending ? (
+                <Loader className="animate-spin" size={20} />
+              ) : (
+                <Send size={20} />
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { UserType } from "../../types/userTypes";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -8,9 +9,10 @@ const Login: React.FC = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
+  // components/Login.tsx
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -19,7 +21,21 @@ const Login: React.FC = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        navigate("/admin/dashboard");
+        // Rediriger selon le type d'utilisateur
+
+        switch (user?.type) {
+          case UserType.ADMIN:
+            navigate("/admin/dashboard");
+            break;
+          case UserType.AGENT:
+            navigate("/agent/dashboard");
+            break;
+          case UserType.CLIENT:
+          case UserType.USER:
+          default:
+            navigate("/"); // Page d'accueil pour les clients et users
+            break;
+        }
       } else {
         setError("Email ou mot de passe incorrect");
       }
@@ -29,7 +45,6 @@ const Login: React.FC = () => {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#031026]  py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
