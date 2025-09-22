@@ -178,8 +178,7 @@ class SecurityMonitor {
       iframe.style.display = "none";
       document.body.appendChild(iframe);
 
-      // @ts-ignore
-      iframe.contentWindow.eval("debugger");
+      // iframe.contentWindow.eval("debugger");
       document.body.removeChild(iframe);
 
       return Date.now() - start > 100;

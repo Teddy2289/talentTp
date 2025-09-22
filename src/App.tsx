@@ -90,11 +90,11 @@ const App: React.FC = () => {
                         path="/chat"
                         element={
                           <ProtectedRoute requireAuth={true}>
-                            <SecurityWrapper showViolationPage={false}>
-                              <FrontLayout>
-                                <ChatPage />
-                              </FrontLayout>
-                            </SecurityWrapper>
+                            {/* <SecurityWrapper showViolationPage={false}> */}
+                            <FrontLayout>
+                              <ChatPage />
+                            </FrontLayout>
+                            {/* </SecurityWrapper> */}
                           </ProtectedRoute>
                         }
                       />

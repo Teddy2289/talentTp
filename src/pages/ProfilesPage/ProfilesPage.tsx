@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   Heart,
   MapPin,
-  Calendar,
   Globe,
   Palette,
   Home,
@@ -56,7 +55,6 @@ function ProfilesPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const result = await response.json();
-        console.log("Fetch response:", result);
 
         if (result.data) {
           setProfileData({
